@@ -3,10 +3,35 @@ import pandas as pd
 import plotly.express as px
 import datetime
 
-# 1. SAYFA YAPILANDIRMASI
-st.set_page_config(page_title="LGS Koçluk & Performans Portalı", layout="wide", page_icon="🎓")
+# 1. SAYFA YAPILANDIRMASI VE ŞIK STİL (CUSTOM CSS)
+st.set_page_config(page_title="ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ", layout="wide", page_icon="🦅")
 
-# 2. LGS MÜFREDATI
+st.markdown("""
+<style>
+    .main-title {
+        font-size: 2.3rem;
+        color: #1E3A8A;
+        text-align: center;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+    .sub-title {
+        font-size: 1.1rem;
+        color: #4B5563;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    .login-card {
+        background-color: #F8FAFC;
+        padding: 25px;
+        border-radius: 15px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 2. LGS MÜFREDATI VE AKILLI AYRIMLAR
 LGS_MUSERFAT = {
     "Türkçe (Genel)": ["Fiilimsiler", "Sözcükte Anlam", "Cümlede Anlam", "Cümle Ögeleri", "Cümle Türleri", "Yazım Kuralları", "Noktalama İşaretleri", "Metin Türleri", "Söz Sanatları", "Anlatım Bozuklukları"],
     "Türkçe (Paragraf)": ["Paragrafta Ana Fikir ve Konu", "Paragrafta Yardımcı Fikir", "Paragraf Yapısı ve Akış", "Görsel Okuma ve Grafikler", "Sözel Mantık ve Muhakeme"],
@@ -37,102 +62,92 @@ if "user_role" not in st.session_state:
 if "current_user" not in st.session_state:
     st.session_state["current_user"] = None
 
-# KOÇ VERİTABANI
 if "koclar" not in st.session_state:
     st.session_state["koclar"] = {
         "koc1": {"ad": "Ahmet Hoca", "sifre": "koc123", "lisans": True},
         "koc2": {"ad": "Mehmet Hoca", "sifre": "koc123", "lisans": False}
     }
 
-# ÖĞRENCİ VERİTABANI
 if "ogrenciler" not in st.session_state:
     st.session_state["ogrenciler"] = {
         "ali": {
             "ad": "Ali Yılmaz", "sifre": "1234", "koc_id": "koc1",
-            "calisma": [], "deneme": [],
+            "calisma": [], "deneme": [], "kitap_ozdegerlendirme": [],
             "hedef_netler": {"Türkçe": 18.0, "Matematik": 15.0, "Fen Bilimleri": 18.0, "T.C. İnkılap Tarihi": 9.0, "Din Kültürü ve A.B.": 10.0, "İngilizce": 9.0},
             "ozlu_soz": "Başarı, her gün tekrarlanan küçük çabaların toplamıdır!"
         },
         "zeynep": {
             "ad": "Zeynep Kaya", "sifre": "1234", "koc_id": "koc1",
-            "calisma": [], "deneme": [],
+            "calisma": [], "deneme": [], "kitap_ozdegerlendirme": [],
             "hedef_netler": {"Türkçe": 19.0, "Matematik": 17.0, "Fen Bilimleri": 19.0, "T.C. İnkılap Tarihi": 10.0, "Din Kültürü ve A.B.": 10.0, "İngilizce": 10.0},
             "ozlu_soz": "İnanmak, başarmanın yarısıdır!"
         }
     }
 
 # ----------------------------------------------------
-# 4. GİRIS EKRANI (LOGIN SYSTEM)
+# 4. ŞIK KARŞILAMA VE GİRİŞ EKRANI
 # ----------------------------------------------------
 if not st.session_state["logged_in"]:
-    st.title("🎓 LGS Koçluk & Performans Portalı")
-    st.caption("Lütfen Giriş Türünüzü Seçiniz")
+    st.markdown('<div class="main-title">🦅 ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">LGS Başarı & Performans Takip Sistemi</div>', unsafe_allow_html=True)
     
-    rol_secim = st.radio("Giriş Türü:", ["👨‍🎓 Öğrenci Girişi", "👨‍🏫 Koç Girişi", "👑 Ana Yönetici Girişi"], horizontal=True)
+    col_cen, col_box, col_cen2 = st.columns([1, 2, 1])
     
-    st.divider()
-    
-    if rol_secim == "👨‍🎓 Öğrenci Girişi":
-        st.subheader("Öğrenci Giriş Paneli")
-        usr = st.text_input("Öğrenci Kullanıcı Adı (Örn: ali, zeynep):", key="in_stud_usr")
-        pwd = st.text_input("Şifre:", type="password", key="in_stud_pwd")
-        if st.button("Öğrenci Olarak Giriş Yap", type="primary"):
-            usr_clean = usr.strip().lower()
-            if usr_clean in st.session_state["ogrenciler"] and st.session_state["ogrenciler"][usr_clean]["sifre"] == pwd:
-                st.session_state["logged_in"] = True
-                st.session_state["user_role"] = "Öğrenci"
-                st.session_state["current_user"] = usr_clean
-                st.rerun()
-            else:
-                st.error("Hatalı Kullanıcı Adı veya Şifre!")
-                
-    elif rol_secim == "👨‍🏫 Koç Girişi":
-        st.subheader("Koç Giriş Paneli")
-        usr = st.text_input("Koç Kullanıcı Adı (Örn: koc1, koc2):", key="in_koc_usr")
-        pwd = st.text_input("Şifre:", type="password", key="in_koc_pwd")
-        if st.button("Koç Olarak Giriş Yap", type="primary"):
-            usr_clean = usr.strip().lower()
-            if usr_clean in st.session_state["koclar"] and st.session_state["koclar"][usr_clean]["sifre"] == pwd:
-                st.session_state["logged_in"] = True
-                st.session_state["user_role"] = "Koç"
-                st.session_state["current_user"] = usr_clean
-                st.rerun()
-            else:
-                st.error("Hatalı Koç Kullanıcı Adı veya Şifre!")
+    with col_box:
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+        rol_secim = st.radio("🔑 Giriş Türünü Seçiniz:", ["👨‍🎓 Öğrenci Girişi", "👨‍🏫 Koç Girişi", "👑 Ana Yönetici Girişi"], horizontal=True)
+        st.divider()
+        
+        if rol_secim == "👨‍🎓 Öğrenci Girişi":
+            usr = st.text_input("Kullanıcı Adı (Örn: ali, zeynep):", key="in_stud_usr").strip().lower()
+            pwd = st.text_input("Şifre:", type="password", key="in_stud_pwd")
+            if st.button("🚀 Öğrenci Olarak Giriş Yap", type="primary", use_container_width=True):
+                if usr in st.session_state["ogrenciler"] and st.session_state["ogrenciler"][usr]["sifre"] == pwd:
+                    st.session_state["logged_in"] = True
+                    st.session_state["user_role"] = "Öğrenci"
+                    st.session_state["current_user"] = usr
+                    st.rerun()
+                else:
+                    st.error("Hatalı Kullanıcı Adı veya Şifre!")
+                    
+        elif rol_secim == "👨‍🏫 Koç Girişi":
+            usr = st.text_input("Koç Kullanıcı Adı (Örn: koc1):", key="in_koc_usr").strip().lower()
+            pwd = st.text_input("Şifre:", type="password", key="in_koc_pwd")
+            if st.button("🚀 Koç Olarak Giriş Yap", type="primary", use_container_width=True):
+                if usr in st.session_state["koclar"] and st.session_state["koclar"][usr]["sifre"] == pwd:
+                    st.session_state["logged_in"] = True
+                    st.session_state["user_role"] = "Koç"
+                    st.session_state["current_user"] = usr
+                    st.rerun()
+                else:
+                    st.error("Hatalı Koç Kullanıcı Adı veya Şifre!")
 
-    elif rol_secim == "👑 Ana Yönetici Girişi":
-        st.subheader("Ana Yönetici (Süper Admin) Girişi")
-        pwd = st.text_input("Yönetici Şifreniz:", type="password", key="in_admin_pwd")
-        if st.button("Yönetici Olarak Giriş Yap", type="primary"):
-            if pwd == "admin123":
-                st.session_state["logged_in"] = True
-                st.session_state["user_role"] = "Ana Yönetici"
-                st.session_state["current_user"] = "admin"
-                st.rerun()
-            else:
-                st.error("Hatalı Yönetici Şifresi! (Varsayılan: admin123)")
+        elif rol_secim == "👑 Ana Yönetici Girişi":
+            pwd = st.text_input("Yönetici Şifresi:", type="password", key="in_admin_pwd")
+            if st.button("🚀 Yönetici Olarak Giriş Yap", type="primary", use_container_width=True):
+                if pwd == "admin123":
+                    st.session_state["logged_in"] = True
+                    st.session_state["user_role"] = "Ana Yönetici"
+                    st.session_state["current_user"] = "admin"
+                    st.rerun()
+                else:
+                    st.error("Hatalı Yönetici Şifresi!")
+        st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # ----------------------------------------------------
-# 5. AKTİF KULLANICI VE ÖĞRENCİ BELİRLEME
+# 5. OTURUM YÖNETİMİ & KULLANICI SEÇİMİ
 # ----------------------------------------------------
 role = st.session_state["user_role"]
 curr_usr = st.session_state["current_user"]
 
-# Yan menüde seçilen öğrenciyi takip etmek için
 if "selected_student_id" not in st.session_state:
     st.session_state["selected_student_id"] = None
 
-# Yetkiye göre öğrenci belirleme
 if role == "Öğrenci":
     active_stud_id = curr_usr
 elif role in ["Koç", "Ana Yönetici"]:
-    # Koç ise sadece kendi öğrencileri, Admin ise tüm öğrenciler
-    if role == "Koç":
-        filtre_ogrenciler = {k: v for k, v in st.session_state["ogrenciler"].items() if v["koc_id"] == curr_usr}
-    else:
-        filtre_ogrenciler = st.session_state["ogrenciler"]
-        
+    filtre_ogrenciler = {k: v for k, v in st.session_state["ogrenciler"].items() if v["koc_id"] == curr_usr} if role == "Koç" else st.session_state["ogrenciler"]
     if len(filtre_ogrenciler) > 0:
         if st.session_state["selected_student_id"] not in filtre_ogrenciler:
             st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())[0]
@@ -141,82 +156,84 @@ elif role in ["Koç", "Ana Yönetici"]:
         active_stud_id = None
 
 # ----------------------------------------------------
-# 6. YAN MENÜ (SIDEBAR)
+# 6. YAN MENÜ (SIDEBAR) & ŞİFRE DEĞİŞTİRME
 # ----------------------------------------------------
 with st.sidebar:
-    st.title("🎓 LGS Koçluk Paneli")
+    st.markdown("### 🦅 ŞAHİN MATH CHECK-UP")
+    st.caption("Koçluk Akademisi")
     st.info(f"👤 **Oturum:** {role}")
     
     if role == "Ana Yönetici":
-        st.success("👑 **Süper Admin Modu Aktif**")
+        st.success("👑 **Süper Admin**")
         if len(st.session_state["ogrenciler"]) > 0:
-            s_list = list(st.session_state["ogrenciler"].keys())
             st.session_state["selected_student_id"] = st.selectbox(
-                "İncelenen Öğrenci:", s_list, 
+                "İncelenen Öğrenci:", list(st.session_state["ogrenciler"].keys()),
                 format_func=lambda x: f"{st.session_state['ogrenciler'][x]['ad']} ({x})"
             )
-        else:
-            st.warning("Sistemde kayıtlı öğrenci yok.")
-
     elif role == "Koç":
         koc_adi = st.session_state["koclar"][curr_usr]["ad"]
         st.markdown(f"**Koç:** {koc_adi}")
         if len(filtre_ogrenciler) > 0:
-            s_list = list(filtre_ogrenciler.keys())
             st.session_state["selected_student_id"] = st.selectbox(
-                "Öğrencinizi Seçiniz:", s_list, 
+                "Öğrenciniz:", list(filtre_ogrenciler.keys()),
                 format_func=lambda x: f"{filtre_ogrenciler[x]['ad']} ({x})"
             )
-        else:
-            st.warning("Size atanmış öğrenci bulunmuyor.")
-
     elif role == "Öğrenci":
         st.markdown(f"**Öğrenci:** {st.session_state['ogrenciler'][active_stud_id]['ad']}")
 
     st.divider()
+    
+    # ŞİFRE DEĞİŞTİRME EXPANDER
+    with st.expander("🔑 Şifremi Değiştir"):
+        yeni_pass = st.text_input("Yeni Şifreniz:", type="password", key="side_new_pass")
+        if st.button("Şifreyi Güncelle"):
+            if yeni_pass:
+                if role == "Öğrenci":
+                    st.session_state["ogrenciler"][curr_usr]["sifre"] = yeni_pass
+                elif role == "Koç":
+                    st.session_state["koclar"][curr_usr]["sifre"] = yeni_pass
+                st.success("Şifreniz güncellendi!")
+
     if active_stud_id and active_stud_id in st.session_state["ogrenciler"]:
         ogr_obj = st.session_state["ogrenciler"][active_stud_id]
-        st.warning(f"💡 **Motivasyon Notu:**\n\n_{ogr_obj['ozlu_soz']}_")
         st.divider()
-        st.markdown("### 🎯 Hedef Netler")
-        for d, n in ogr_obj["hedef_netler"].items():
-            st.text(f"• {d}: {n} Net")
+        st.warning(f"💡 **Motivasyon Notu:**\n\n_{ogr_obj['ozlu_soz']}_")
 
     st.divider()
-    if st.button("🚪 Çıkış Yap", type="secondary"):
+    if st.button("🚪 Çıkış Yap", type="secondary", use_container_width=True):
         st.session_state["logged_in"] = False
         st.session_state["user_role"] = None
         st.session_state["current_user"] = None
         st.rerun()
 
 # ----------------------------------------------------
-# 7. ANA EKRAN SEKME YAPISI
+# 7. SEKMELER
 # ----------------------------------------------------
-tab_names = ["📝 Günlük Veri Girişi", "📊 Deneme & Netler", "📚 MEB & Çıkmışlar", "📖 Kitap & Öz Değerlendirme", "👨‍👩‍👧 Veli & Koç Analiz"]
+tab_names = ["📝 Günlük Veri & Süre Girişi", "📊 Deneme & Konu Hataları", "📚 MEB & Çıkmışlar", "📖 Kitap & Öz Değerlendirme", "👨‍👩‍👧 Veli & Koç Analiz"]
 if role in ["Koç", "Ana Yönetici"]:
     tab_names.append("⚙️ Yönetim Paneli")
 
 tabs = st.tabs(tab_names)
 
-# Eğer hiç öğrenci yoksa uyarı ver
 if not active_stud_id and role != "Ana Yönetici":
-    st.warning("İşlem yapmak için sisteme tanımlı bir öğrenci gereklidir.")
+    st.warning("İşlem yapmak için tanımlı bir öğrenci gereklidir.")
     st.stop()
 
 # ----------------------------------------------------
-# TAB 1: GÜNLÜK VERİ GİRİŞİ
+# TAB 1: GÜNLÜK VERİ & DERS BAZLI SÜRE GİRİŞİ
 # ----------------------------------------------------
 with tabs[0]:
     if active_stud_id:
         ogr_obj = st.session_state["ogrenciler"][active_stud_id]
-        st.header(f"📌 Günlük Çalışma ve Süre Girişi ({ogr_obj['ad']})")
+        st.header(f"Günlük Ders Çalışma ve Süre Girişi ({ogr_obj['ad']})")
+        st.caption("Her ders ve konu için harcadığınız süreyi ve soru sayılarını ayrı ayrı kaydedebilirsiniz.")
         
         col_t1, col_t2 = st.columns(2)
         with col_t1:
             tarih = st.date_input("Çalışma Tarihi", datetime.date.today())
             ders = st.selectbox("Çalışılan Ders", list(LGS_MUSERFAT.keys()))
             konu = st.selectbox("Çalışılan Konu", LGS_MUSERFAT[ders])
-            sure_dk = st.number_input("Harcanan Süre (Dakika)", min_value=5, max_value=300, value=45, step=5)
+            sure_dk = st.number_input("Bu Derse Harcanan Süre (Dakika)", min_value=5, max_value=300, value=45, step=5)
         
         with col_t2:
             dogru = st.number_input("Doğru Soru Sayısı", min_value=0, value=25)
@@ -243,15 +260,15 @@ with tabs[0]:
                 "Doğru": dogru, "Yanlış": yanlis, "Boş": bos, "Çözülen": dogru + yanlis + bos,
                 "Hata Sebebi": hata_sebebi, "Çözüme Bakıldı": yapilamayana_bakildi, "Programa Uyum": programa_riayet
             })
-            st.success("✅ Veri başarıyla kaydedildi!")
+            st.success(f"✅ {ders} - {konu} çalışması ({sure_dk} dk) başarıyla kaydedildi!")
 
 # ----------------------------------------------------
-# TAB 2: DENEME SINAVLARI VE HEDEF NETLER
+# TAB 2: DENEME SINAVLARI VE KONU BAZLI HATA İŞARETLEME
 # ----------------------------------------------------
 with tabs[1]:
     if active_stud_id:
         ogr_obj = st.session_state["ogrenciler"][active_stud_id]
-        st.header(f"🎯 LGS Deneme Netleri ({ogr_obj['ad']})")
+        st.header(f"🎯 LGS Deneme Netleri ve Konu Hataları ({ogr_obj['ad']})")
         
         col_d1, col_d2 = st.columns(2)
         with col_d1:
@@ -269,21 +286,40 @@ with tabs[1]:
             idx += 1
 
         st.divider()
-        st.subheader("📊 Hedef vs. Gerçekleşen Net Kıyaslaması")
-        kiyas_data = []
-        for d_ana, g_net in net_girisleri.items():
-            h_net = ogr_obj["hedef_netler"].get(d_ana, 15.0)
-            durum = "✅ Hedefe Ulaşıldı" if g_net >= h_net else f"⚠️ {h_net - g_net:.2f} Net Eksik"
-            kiyas_data.append({"Ders": d_ana, "Hedef Net": h_net, "Gerçekleşen Net": g_net, "Durum": durum})
+        st.subheader("📌 Denemedeki Yanlış / Boş Soruların Konu Dağılımı")
+        st.caption("Hangi konudan kaç yanlış veya boş yaptığınızı seçiniz (Örn: 1 Yanlış Çarpanlar ve Katlar)")
         
-        st.dataframe(pd.DataFrame(kiyas_data), use_container_width=True)
+        if "temp_deneme_hatalari" not in st.session_state:
+            st.session_state["temp_deneme_hatalari"] = []
 
-        if st.button("📊 Deneme Sonucunu Kaydet", type="primary"):
-            ogr_obj["deneme"].append({"Tarih": deneme_tarihi, "Deneme": deneme_adi, **net_girisleri})
-            st.success("Deneme netleri kaydedildi!")
+        col_h1, col_h2, col_h3, col_h4 = st.columns([2, 2, 1, 1])
+        with col_h1:
+            h_ders = st.selectbox("Ders Seç:", list(LGS_MUSERFAT.keys()), key="dh_ders")
+        with col_h2:
+            h_konu = st.selectbox("Konu Seç:", LGS_MUSERFAT[h_ders], key="dh_konu")
+        with col_h3:
+            h_yanlis = st.number_input("Yanlış", 0, 20, 1, key="dh_y")
+        with col_h4:
+            h_bos = st.number_input("Boş", 0, 20, 0, key="dh_b")
+
+        if st.button("➕ Konu Hatasını Ekle"):
+            st.session_state["temp_deneme_hatalari"].append({"Ders": h_ders, "Konu": h_konu, "Yanlış": h_yanlis, "Boş": h_bos})
+            st.success("Konu hatası eklendi!")
+
+        if len(st.session_state["temp_deneme_hatalari"]) > 0:
+            st.table(pd.DataFrame(st.session_state["temp_deneme_hatalari"]))
+
+        st.divider()
+        if st.button("📊 Deneme Sınavını ve Konu Hatalarını Kaydet", type="primary"):
+            ogr_obj["deneme"].append({
+                "Tarih": deneme_tarihi, "Deneme": deneme_adi, 
+                "Netler": net_girisleri, "KonuHatalari": st.session_state["temp_deneme_hatalari"]
+            })
+            st.session_state["temp_deneme_hatalari"] = []
+            st.success("Deneme sınavı ve konu detayları başarıyla kaydedildi!")
 
 # ----------------------------------------------------
-# TAB 3 & 4: MEB & KİTAP
+# TAB 3: MEB & ÇIKMIŞLAR
 # ----------------------------------------------------
 with tabs[2]:
     st.header("📚 MEB Soruları ve Çıkmış Soru Kontrolü")
@@ -292,14 +328,37 @@ with tabs[2]:
             st.checkbox(f"{ders_adi} - MEB Örnek Sorularını Çözdüm")
             st.checkbox(f"{ders_adi} - LGS Çıkmış Soruları Çözdüm")
 
+# ----------------------------------------------------
+# TAB 4: KİTAP OKUMA & HAFTALIK ÖZ DEĞERLENDİRME (KAYDET BUTONLU)
+# ----------------------------------------------------
 with tabs[3]:
-    st.header("📖 Kitap Okuma Takibi ve Öz Değerlendirme")
-    col_k1, col_k2 = st.columns(2)
-    with col_k1:
-        st.text_input("Kitap Adı", "Şeker Portakalı")
-    with col_k2:
-        st.number_input("Haftalık Okunan Sayfa", min_value=0, value=75)
-    st.text_area("Haftalık Öz Değerlendirme Notu:", "Bu hafta yeni nesil matematik sorularında gelişim sağladım...")
+    if active_stud_id:
+        ogr_obj = st.session_state["ogrenciler"][active_stud_id]
+        st.header(f"📖 Kitap Okuma Takibi ve Öz Değerlendirme ({ogr_obj['ad']})")
+        
+        col_k1, col_k2, col_k3 = st.columns(3)
+        with col_k1:
+            hafta_tarih = st.date_input("Hafta / Tarih Seçimi", datetime.date.today())
+        with col_k2:
+            kitap_adi = st.text_input("Okunan Kitap Adı", "Şeker Portakalı")
+        with col_k3:
+            okunan_sayfa = st.number_input("Haftalık Okunan Sayfa Sayısı", min_value=0, value=75)
+
+        ogrenci_notu = st.text_area(
+            "Haftalık Öz Değerlendirme Notunuz (Bu hafta ne durumdaydınız?):",
+            "Bu hafta matematik yeni nesil sorularında gelişim sağladım, hedef okuma sayfamı tamamladım..."
+        )
+
+        if st.button("💾 Kitap & Öz Değerlendirmeyi Kaydet", type="primary"):
+            ogr_obj["kitap_ozdegerlendirme"].append({
+                "Tarih": hafta_tarih, "Kitap": kitap_adi, "Sayfa": okunan_sayfa, "Not": ogrenci_notu
+            })
+            st.success("✅ Haftalık kitap okuma ve öz değerlendirmeniz başarıyla kaydedildi!")
+
+        if len(ogr_obj["kitap_ozdegerlendirme"]) > 0:
+            st.divider()
+            st.subheader("📜 Geçmiş Değerlendirme Kayıtları")
+            st.dataframe(pd.DataFrame(ogr_obj["kitap_ozdegerlendirme"]), use_container_width=True)
 
 # ----------------------------------------------------
 # TAB 5: VELİ VE KOÇ ANALİZ PANELİ
@@ -319,32 +378,24 @@ with tabs[4]:
             fig_sure = px.pie(df_calisma, values="Süre (dk)", names="Ders", title="Derslere Göre Zaman Dağılımı")
             st.plotly_chart(fig_sure, use_container_width=True)
         else:
-            st.info("İncelemek için lütfen 'Günlük Veri Girişi' sekmesinden veri kaydedin.")
+            st.info("İncelemek için lütfen 'Günlük Veri & Süre Girişi' sekmesinden veri kaydedin.")
 
 # ----------------------------------------------------
-# TAB 6: YÖNETİM PANELİ (SADECE KOÇ VE YÖNETİCİ)
+# TAB 6: YÖNETİM PANELİ (KOÇ VE ADMİN)
 # ----------------------------------------------------
 if role in ["Koç", "Ana Yönetici"]:
     with tabs[5]:
         st.header("⚙️ Koç & Sistem Yönetim Merkezi")
         
-        # 1. ÖĞRENCİ EKLEME VEYA SİLME ALANI
         st.subheader("👨‍🎓 Öğrenci Yönetimi (Ekle / Sil / Şifre Değiştir)")
-        
         col_oe1, col_oe2 = st.columns(2)
         
-        # Öğrenci Ekleme Formu
         with col_oe1:
             st.markdown("### ➕ Yeni Öğrenci Ekle")
-            new_s_username = st.text_input("Öğrenci Kullanıcı Adı (Örn: ahmet):").strip().lower()
-            new_s_fullname = st.text_input("Öğrenci Adı Soyadı (Örn: Ahmet Demir):")
-            new_s_pass = st.text_input("Öğrenci Şifresi:", value="1234")
-            
-            # Eğer Admin ise hangi koça bağlayacağını seçsin
-            if role == "Ana Yönetici":
-                assigned_koc = st.selectbox("Atanacak Koç:", list(st.session_state["koclar"].keys()), format_func=lambda x: st.session_state["koclar"][x]["ad"])
-            else:
-                assigned_koc = curr_usr
+            new_s_username = st.text_input("Kullanıcı Adı (Örn: ahmet):").strip().lower()
+            new_s_fullname = st.text_input("Adı Soyadı (Örn: Ahmet Demir):")
+            new_s_pass = st.text_input("Şifresi:", value="1234")
+            assigned_koc = st.selectbox("Atanacak Koç:", list(st.session_state["koclar"].keys()), format_func=lambda x: st.session_state["koclar"][x]["ad"]) if role == "Ana Yönetici" else curr_usr
 
             if st.button("➕ Öğrenciyi Kaydet", type="primary"):
                 if new_s_username and new_s_fullname:
@@ -353,63 +404,44 @@ if role in ["Koç", "Ana Yönetici"]:
                     else:
                         st.session_state["ogrenciler"][new_s_username] = {
                             "ad": new_s_fullname, "sifre": new_s_pass, "koc_id": assigned_koc,
-                            "calisma": [], "deneme": [],
+                            "calisma": [], "deneme": [], "kitap_ozdegerlendirme": [],
                             "hedef_netler": {d: 15.0 for d in ANA_LGS_DERSLERI},
                             "ozlu_soz": "Başarı yolculuğun başladı!"
                         }
-                        st.success(f"✅ {new_s_fullname} sisteme eklendi!")
+                        st.success(f"✅ {new_s_fullname} eklendi!")
                         st.rerun()
 
-        # Öğrenci Silme Formu
         with col_oe2:
             st.markdown("### 🗑️ Öğrenci Sil")
             silinecek_ogrenciler = list(filtre_ogrenciler.keys()) if role == "Koç" else list(st.session_state["ogrenciler"].keys())
-            
             if len(silinecek_ogrenciler) > 0:
                 del_s_id = st.selectbox("Silinecek Öğrenciyi Seçin:", silinecek_ogrenciler, format_func=lambda x: f"{st.session_state['ogrenciler'][x]['ad']} ({x})")
-                if st.button("❌ Seçili Öğrenciyi Sistemden Sil", type="secondary"):
+                if st.button("❌ Seçili Öğrenciyi Sil", type="secondary"):
                     del st.session_state["ogrenciler"][del_s_id]
-                    st.success("Öğrenci başarıyla silindi!")
+                    st.success("Öğrenci silindi!")
                     st.rerun()
-            else:
-                st.info("Silinecek öğrenci bulunmuyor.")
 
         st.divider()
-
-        # 2. SADECE ANA YÖNETİCİ (SUPER ADMIN) KOÇ YÖNETİM ALANI
         if role == "Ana Yönetici":
             st.subheader("👑 Ana Yönetici Özel Paneli: Koç Yönetimi")
-            
             col_ke1, col_ke2 = st.columns(2)
             
-            # Koç Ekleme
             with col_ke1:
                 st.markdown("### ➕ Yeni Koç Ekle")
                 new_k_username = st.text_input("Koç Kullanıcı Adı (Örn: koc3):").strip().lower()
                 new_k_fullname = st.text_input("Koç Adı Soyadı (Örn: Ayşe Hoca):")
                 new_k_pass = st.text_input("Koç Şifresi:", value="koc123")
-                new_k_lisans = st.checkbox("Lisans Ödemesi Yapıldı / Aktif", value=True)
                 
                 if st.button("➕ Yeni Koç Oluştur", type="primary"):
                     if new_k_username and new_k_fullname:
-                        if new_k_username in st.session_state["koclar"]:
-                            st.error("Bu koç kullanıcı adı zaten var!")
-                        else:
-                            st.session_state["koclar"][new_k_username] = {"ad": new_k_fullname, "sifre": new_k_pass, "lisans": new_k_lisans}
-                            st.success(f"✅ Koç {new_k_fullname} başarıyla eklendi!")
-                            st.rerun()
+                        st.session_state["koclar"][new_k_username] = {"ad": new_k_fullname, "sifre": new_k_pass, "lisans": True}
+                        st.success(f"✅ Koç {new_k_fullname} eklendi!")
+                        st.rerun()
 
-            # Koç Silme ve Lisans Durumu
             with col_ke2:
-                st.markdown("### 🗑️ Koç Sil / Lisans Yönetimi")
+                st.markdown("### 🗑️ Koç Sil")
                 del_k_id = st.selectbox("İşlem Yapılacak Koç:", list(st.session_state["koclar"].keys()), format_func=lambda x: f"{st.session_state['koclar'][x]['ad']} ({x})")
-                
-                # Lisans durumu değiştirme
-                cur_lic = st.session_state["koclar"][del_k_id]["lisans"]
-                new_lic = st.checkbox("Lisans Aktif", value=cur_lic, key=f"lic_{del_k_id}")
-                st.session_state["koclar"][del_k_id]["lisans"] = new_lic
-                
-                if st.button("❌ Seçili Koçu Sistemden Sil"):
+                if st.button("❌ Seçili Koçu Sil"):
                     del st.session_state["koclar"][del_k_id]
-                    st.success("Koç sistemden silindi!")
+                    st.success("Koç silindi!")
                     st.rerun()
