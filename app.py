@@ -32,12 +32,11 @@ def save_db(data):
             return False
     return False
 
-# 1. SAYFA YAPILANDIRMASI VE GELİŞMİŞ RENKLİ / KARANLIK MOD CSS STİLİ
+# 1. SAYFA YAPILANDIRMASI VE GELİŞMİŞ CSS STİLİ
 st.set_page_config(page_title="ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ", layout="wide", page_icon="🦅")
 
 st.markdown("""
 <style>
-    /* Genel Tipografi ve Stil */
     .main-title {
         font-size: 2.3rem;
         background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
@@ -71,63 +70,24 @@ st.markdown("""
         margin-bottom: 15px;
         box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
     }
-    .sidebar-brand h3 {
-        color: #FFFFFF !important;
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 800;
-    }
-    .sidebar-brand p {
-        color: #93C5FD !important;
-        margin: 0;
-        font-size: 0.85rem;
-    }
+    .sidebar-brand h3 { color: #FFFFFF !important; margin: 0; font-size: 1.25rem; font-weight: 800; }
+    .sidebar-brand p { color: #93C5FD !important; margin: 0; font-size: 0.85rem; }
 
-    /* KARANLIK MOD (DARK MODE) UYUMU VE METİN OKUNABİLİRLİĞİ */
     @media (prefers-color-scheme: dark) {
-        .stApp {
-            background-color: #0F172A !important;
-            color: #F8FAFC !important;
-        }
-        .login-card {
-            background-color: #1E293B !important;
-            border-color: #334155 !important;
-            color: #F8FAFC !important;
-        }
-        [data-testid="stSidebar"] {
-            background-color: #0F172A !important;
-        }
-        [data-testid="stSidebar"] p, 
-        [data-testid="stSidebar"] span, 
-        [data-testid="stSidebar"] label,
-        [data-testid="stSidebar"] div,
-        [data-testid="stSidebar"] .stRadio label p {
-            color: #F8FAFC !important;
-        }
-        .main-title {
-            background: linear-gradient(135deg, #60A5FA 0%, #93C5FD 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .sub-title {
-            color: #94A3B8 !important;
-        }
+        .stApp { background-color: #0F172A !important; color: #F8FAFC !important; }
+        .login-card { background-color: #1E293B !important; border-color: #334155 !important; color: #F8FAFC !important; }
+        [data-testid="stSidebar"] { background-color: #0F172A !important; }
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] div, [data-testid="stSidebar"] .stRadio label p { color: #F8FAFC !important; }
+        .main-title { background: linear-gradient(135deg, #60A5FA 0%, #93C5FD 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sub-title { color: #94A3B8 !important; }
     }
 
-    /* LIGHT MODE İÇİN SİDEBAR YAZI NETLİĞİ */
     @media (prefers-color-scheme: light) {
-        [data-testid="stSidebar"] p, 
-        [data-testid="stSidebar"] span, 
-        [data-testid="stSidebar"] label {
-            color: #1E293B !important;
-        }
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: #1E293B !important; }
     }
 
-    /* MENÜ RADYO BUTONLARI BÜYÜKLÜK VE NETLİK */
-    [data-testid="stSidebar"] .stRadio label p {
-        font-size: 1.05rem !important;
-        font-weight: 600 !important;
-    }
+    [data-testid="stSidebar"] .stRadio label p { font-size: 1.05rem !important; font-weight: 600 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -159,7 +119,7 @@ db = st.session_state["db"]
 if "admin" not in db["koclar"]:
     db["koclar"]["admin"] = {"ad": "Ana Yönetici (Siz)", "sifre": "admin123", "lisans": True}
 
-# SADELEŞTİRİLMİŞ 6 ANA LGS DERSİ VE MÜFREDAT KONULARI
+# 6 ANA LGS DERSİ VE MÜFREDAT KONULARI
 LGS_MUSERFAT = {
     "Türkçe": [
         "Fiilimsiler", "Sözcükte Anlam", "Cümlede Anlam", "Cümle Ögeleri", "Cümle Türleri",
@@ -264,9 +224,7 @@ elif role in ["Koç", "Ana Yönetici"]:
     else:
         active_stud_id = None
 
-# ==============================================================================
-# DİKEY YAN MENÜ (ALT ALTA NAVİGASYON)
-# ==============================================================================
+# DİKEY YAN MENÜ
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
@@ -391,6 +349,25 @@ if secili_menu == "📝 Günlük Çalışma & Kitap Okuma":
             save_db(db)
             st.success("✅ Günlük ders, süre, kitap okuma ve öz değerlendirme kaydınız Google Sheets'e kaydedildi!")
 
+        # AKILLI TEKRAR UYARISI BİLDİRİM BÖLÜMÜ (%70 ALTI BAŞARI)
+        riskli_konular = []
+        for c_item in ogr_obj.get("calisma", []):
+            c_toplam = c_item.get("Çözülen", 0)
+            c_dogru = c_item.get("Doğru", 0)
+            if c_toplam > 0:
+                oray = (c_dogru / c_toplam) * 100
+                if oray < 70.0:
+                    riskli_konular.append({
+                        "Tarih": c_item.get("Tarih"), "Ders": c_item.get("Ders"), 
+                        "Konu": c_item.get("Konu"), "Başarı Oranı": f"%{oray:.1f}"
+                    })
+
+        if len(riskli_konular) > 0:
+            st.divider()
+            st.subheader("🔔 Akıllı Konu Tekrar Bildirimleri (%70 Altında Kalanlar)")
+            for rk in riskli_konular[-3:]: # Son 3 riskli konu
+                st.error(f"⚠️ **{rk['Tarih']}** | **{rk['Ders']} -> {rk['Konu']}**: Başarı Oranı **{rk['Başarı Oranı']}** (%70 Sınırının Altında!) -> *Bu konuyu tekrar etmeli ve test çözmelisin!*")
+
 # ==============================================================================
 # 2. HAFTALIK DERS ÇALIŞMA PROGRAMI TABLOSU
 # ==============================================================================
@@ -435,12 +412,15 @@ elif secili_menu == "📅 Haftalık Ders Çalışma Programı":
             st.info("Henüz oluşturulmuş bir haftalık çalışma programı bulunmuyor.")
 
 # ==============================================================================
-# 3. DENEME SINAVLARI VE KONU BAZLI HATA İŞARETLEME
+# 3. DENEME SINAVLARI, HEDEF NETLER VE KONU HATA İŞARETLEME
 # ==============================================================================
 elif secili_menu == "📊 Deneme Sınavları & Konu Hataları":
     if active_stud_id:
         ogr_obj = db["ogrenciler"][active_stud_id]
-        st.header(f"🎯 LGS Deneme Netleri ve Konu Hataları ({ogr_obj['ad']})")
+        if "hedef_netler" not in ogr_obj:
+            ogr_obj["hedef_netler"] = {d: 15.0 for d in ANA_LGS_DERSLERI}
+
+        st.header(f"🎯 LGS Deneme Netleri ve Hedef Kıyaslama ({ogr_obj['ad']})")
         
         col_d1, col_d2 = st.columns(2)
         with col_d1:
@@ -448,14 +428,50 @@ elif secili_menu == "📊 Deneme Sınavları & Konu Hataları":
         with col_d2:
             deneme_tarihi = st.date_input("Deneme Tarihi", datetime.date.today())
         
-        st.subheader("📝 6 Ana Ders Netleri:")
+        st.subheader("📝 6 Ana Ders Netlerinizi Giriniz:")
         net_girisleri = {}
         cols = st.columns(3)
         idx = 0
         for d_ana in ANA_LGS_DERSLERI:
             with cols[idx % 3]:
-                net_girisleri[d_ana] = st.number_input(f"{d_ana} Net", 0.0, 20.0, 15.0, step=0.33)
+                net_girisleri[d_ana] = st.number_input(f"{d_ana} Net", 0.0, 20.0, 15.0, step=0.33, key=f"net_in_{d_ana}")
             idx += 1
+
+        # HEDEF NET VS GERÇEKLEŞEN NET KIYASLAMA TABLOSU
+        st.divider()
+        st.subheader("📊 Hedef Net vs. Girilen Net Kıyaslama Tablosu")
+        kiyas_listesi = []
+        for d_ana in ANA_LGS_DERSLERI:
+            g_net = net_girisleri[d_ana]
+            h_net = ogr_obj["hedef_netler"].get(d_ana, 15.0)
+            fark = g_net - h_net
+            durum = "✅ Hedefe Ulaşıldı" if fark >= 0 else f"⚠️ {abs(fark):.2f} Net Eksik"
+            kiyas_listesi.append({
+                "Ders": d_ana,
+                "Hedef Net": h_net,
+                "Girilen Net": g_net,
+                "Fark": f"{fark:+.2f}",
+                "Durum": durum
+            })
+        st.dataframe(pd.DataFrame(kiyas_listesi), use_container_width=True)
+
+        # HEDEF NETLERİ DÜZENLEME EXPANDERI
+        with st.expander("🎯 Ders Bazlı Hedef Netleri Güncelle / Düzenle"):
+            st.caption("Öğrencinin LGS ders hedef netlerini buradan değiştirebilirsiniz:")
+            cols_h = st.columns(3)
+            yeni_hedefler = {}
+            for idx, d_ana in enumerate(ANA_LGS_DERSLERI):
+                with cols_h[idx % 3]:
+                    yeni_hedefler[d_ana] = st.number_input(
+                        f"{d_ana} Hedef Net", 0.0, 20.0, 
+                        float(ogr_obj["hedef_netler"].get(d_ana, 15.0)), 
+                        step=0.5, key=f"hn_edit_{d_ana}"
+                    )
+            if st.button("💾 Hedef Netleri Kaydet"):
+                ogr_obj["hedef_netler"] = yeni_hedefler
+                save_db(db)
+                st.success("✅ Hedef netler güncellendi ve Google Sheets'e kaydedildi!")
+                st.rerun()
 
         st.divider()
         st.subheader("📌 Denemedeki Yanlış / Boş Soruların Konu Dağılımı")
@@ -481,7 +497,7 @@ elif secili_menu == "📊 Deneme Sınavları & Konu Hataları":
             st.table(pd.DataFrame(st.session_state["temp_deneme_hatalari"]))
 
         st.divider()
-        if st.button("📊 Deneme Sınavını ve Konu Hatalarını Kaydet", type="primary"):
+        if st.button("📊 Deneme Sınavını ve Konu Hatalarını Kaydet", type="primary", use_container_width=True):
             ogr_obj["deneme"].append({
                 "Tarih": str(deneme_tarihi), "Deneme": deneme_adi, 
                 "Netler": net_girisleri, "KonuHatalari": st.session_state["temp_deneme_hatalari"]
@@ -489,6 +505,16 @@ elif secili_menu == "📊 Deneme Sınavları & Konu Hataları":
             st.session_state["temp_deneme_hatalari"] = []
             save_db(db)
             st.success("✅ Deneme sınavı kalıcı olarak Google Sheets'e kaydedildi!")
+
+        if len(ogr_obj.get("deneme", [])) > 0:
+            st.divider()
+            st.subheader("📜 Geçmiş Deneme Sınavı Kayıtları")
+            deneme_listesi = []
+            for d_item in ogr_obj["deneme"]:
+                row = {"Tarih": d_item.get("Tarih"), "Deneme Adı": d_item.get("Deneme")}
+                row.update(d_item.get("Netler", {}))
+                deneme_listesi.append(row)
+            st.dataframe(pd.DataFrame(deneme_listesi), use_container_width=True)
 
 # ==============================================================================
 # 4. MEB ÖRNEK VE ÇIKMIŞ SORULAR (KONU KONU İŞARETLEME)
@@ -525,46 +551,85 @@ elif secili_menu == "📚 MEB & Çıkmış Sorular (Konu Konu)":
             st.success("✅ Tüm konu bazlı MEB ve çıkmış soru durumları Google Sheets'e kaydedildi!")
 
 # ==============================================================================
-# 5. VELİ VE KOÇ ANALİZ PANELİ
+# 5. VELİ VE KOÇ ANALİZ PANELİ (PROGRAM İLE PARALELLİK VE TEKRAR UYARILARI)
 # ==============================================================================
 elif secili_menu == "👨‍👩‍👧 Veli & Koç Analiz Paneli":
     if active_stud_id:
         ogr_obj = db["ogrenciler"][active_stud_id]
-        st.header(f"👨‍👩‍👧 {ogr_obj['ad']} - İlerleme ve Süre Analiz Paneli")
+        st.header(f"👨‍👩‍👧 {ogr_obj['ad']} - İlerleme, Program Paralelliği ve Süre Analizi")
         
+        # 1. HAFTALIK PROGRAM PARALELLİK UYUM TAKİBİ
+        st.subheader("📅 Haftalık Çalışma Programına Uyum / Paralellik Takibi")
+        planlanan_soru = sum([p.get("Hedef Soru", 0) for p in ogr_obj.get("haftalik_program", [])])
+        cozulen_soru = sum([c.get("Çözülen", 0) for c in ogr_obj.get("calisma", [])])
+        
+        col_p1, col_p2, col_p3 = st.columns(3)
+        col_p1.metric("Haftalık Planlanan Hedef Soru", f"{planlanan_soru} Soru")
+        col_p2.metric("Toplam Çözülen Soru", f"{cozulen_soru} Soru")
+        
+        uyum_orani = (cozulen_soru / planlanan_soru * 100) if planlanan_soru > 0 else 100.0
+        col_p3.metric("Program Paralellik Uyum Oranı", f"%{uyum_orani:.1f}")
+
+        if planlanan_soru > 0:
+            st.progress(min(uyum_orani / 100.0, 1.0))
+            if uyum_orani >= 90:
+                st.success("🎉 Harika! Öğrenci haftalık çalışma programına neredeyse tam paralellikte uyuyor.")
+            elif uyum_orani >= 60:
+                st.warning("⚠️ Öğrenci programı kısmen takip ediyor, çözülen soru hedefin biraz gerisinde.")
+            else:
+                st.error("🚨 Öğrenci çalışma programının gerisinde kalmış görünüyor!")
+
+        st.divider()
+
+        # 2. AKILLI KONU TEKRAR BİLDİRİMLERİ (%70 ALTI)
+        st.subheader("🔔 Tekrar Edilmesi Gereken Konu Bildirimleri (%70 Altı Başarı)")
+        riskli_konular_analiz = []
+        for c_item in ogr_obj.get("calisma", []):
+            c_toplam = c_item.get("Çözülen", 0)
+            c_dogru = c_item.get("Doğru", 0)
+            if c_toplam > 0:
+                oray = (c_dogru / c_toplam) * 100
+                if oray < 70.0:
+                    riskli_konular_analiz.append({
+                        "Tarih": c_item.get("Tarih"), "Ders": c_item.get("Ders"), 
+                        "Konu": c_item.get("Konu"), "Başarı Oranı": f"%{oray:.1f}", "Çözülen": c_toplam, "Doğru": c_dogru
+                    })
+
+        if len(riskli_konular_analiz) > 0:
+            st.dataframe(pd.DataFrame(riskli_konular_analiz), use_container_width=True)
+        else:
+            st.success("✅ Öğrencinin %70 başarının altında kaldığı kritik bir konu bulunmuyor.")
+
+        st.divider()
         if len(ogr_obj["calisma"]) > 0:
             df_calisma = pd.DataFrame(ogr_obj["calisma"])
-            st.subheader("⏱️ Çalışma Süresi Analizi")
-            col_m1, col_m2 = st.columns(2)
-            col_m1.metric("Toplam Çalışma Süresi", f"{df_calisma['Süre (dk)'].sum() / 60:.1f} Saat")
-            col_m2.metric("Toplam Çözülen Soru", f"{df_calisma['Çözülen'].sum()} Soru")
-            
+            st.subheader("⏱️ Ders Çalışma Süreleri Dağılımı")
             fig_sure = px.pie(df_calisma, values="Süre (dk)", names="Ders", title="Derslere Göre Zaman Dağılımı")
             st.plotly_chart(fig_sure, use_container_width=True)
 
-            st.divider()
             st.subheader("📖 Günlük Kitap Okuma ve Öz Değerlendirme Geçmişi")
             st.dataframe(df_calisma[["Tarih", "Ders", "Süre (dk)", "Kitap", "Sayfa", "Not"]], use_container_width=True)
-        else:
-            st.info("Kayıtlı çalışma verisi bulunmuyor.")
 
 # ==============================================================================
-# 6. YÖNETİM PANELİ (KOÇ VE ADMİN)
+# 6. YÖNETİM PANELİ (DÜZENLEME, EKLEME VE SİLME)
 # ==============================================================================
 elif secili_menu == "⚙️ Yönetim Paneli" and role in ["Koç", "Ana Yönetici"]:
     st.header("⚙️ Koç & Sistem Yönetim Merkezi")
     
-    st.subheader("👨‍🎓 Öğrenci Yönetimi (Ekle / Sil)")
-    col_oe1, col_oe2 = st.columns(2)
+    # --------------------------------------------------------------------------
+    # ÖĞRENCİ YÖNETİMİ (EKLE / DÜZENLE / SİL)
+    # --------------------------------------------------------------------------
+    st.subheader("👨‍🎓 Öğrenci Yönetimi")
     
-    with col_oe1:
-        st.markdown("### ➕ Yeni Öğrenci Ekle")
-        new_s_username = st.text_input("Kullanıcı Adı (Örn: ahmet):").strip().lower()
-        new_s_fullname = st.text_input("Adı Soyadı (Örn: Ahmet Demir):")
-        new_s_pass = st.text_input("Şifresi:", value="1234")
-        assigned_koc = st.selectbox("Atanacak Koç:", list(db["koclar"].keys()), format_func=lambda x: db["koclar"][x]["ad"]) if role == "Ana Yönetici" else curr_usr
+    tab_o1, tab_o2, tab_o3 = st.tabs(["➕ Öğrenci Ekle", "✏️ Öğrenci Bilgilerini Düzenle", "🗑️ Öğrenci Sil"])
+    
+    with tab_o1:
+        new_s_username = st.text_input("Kullanıcı Adı (Örn: ahmet):", key="add_s_usr").strip().lower()
+        new_s_fullname = st.text_input("Adı Soyadı (Örn: Ahmet Demir):", key="add_s_full")
+        new_s_pass = st.text_input("Şifresi:", value="1234", key="add_s_pwd")
+        assigned_koc = st.selectbox("Atanacak Koç:", list(db["koclar"].keys()), format_func=lambda x: db["koclar"][x]["ad"], key="add_s_koc") if role == "Ana Yönetici" else curr_usr
 
-        if st.button("➕ Öğrenciyi Kaydet", type="primary"):
+        if st.button("➕ Yeni Öğrenciyi Kaydet", type="primary"):
             if new_s_username and new_s_fullname:
                 if new_s_username in db["ogrenciler"]:
                     st.error("Bu kullanıcı adı zaten mevcut!")
@@ -576,30 +641,51 @@ elif secili_menu == "⚙️ Yönetim Paneli" and role in ["Koç", "Ana Yönetici
                         "ozlu_soz": "Başarı yolculuğun başladı!"
                     }
                     save_db(db)
-                    st.success(f"✅ {new_s_fullname} Google Sheets'e eklendi!")
+                    st.success(f"✅ {new_s_fullname} eklendi!")
                     st.rerun()
 
-    with col_oe2:
-        st.markdown("### 🗑️ Öğrenci Sil")
+    with tab_o2:
+        if len(db["ogrenciler"]) > 0:
+            edit_s_id = st.selectbox("Düzenlenecek Öğrenciyi Seçin:", list(db["ogrenciler"].keys()), format_func=lambda x: f"{db['ogrenciler'][x]['ad']} ({x})", key="edit_s_select")
+            e_s_obj = db["ogrenciler"][edit_s_id]
+            
+            edit_s_ad = st.text_input("Adı Soyadı:", value=e_s_obj.get("ad", ""), key="edit_s_ad")
+            edit_s_sifre = st.text_input("Şifresi:", value=e_s_obj.get("sifre", ""), key="edit_s_sifre")
+            edit_s_koc = st.selectbox("Bağlı Olduğu Koç:", list(db["koclar"].keys()), index=list(db["koclar"].keys()).index(e_s_obj.get("koc_id", "admin")) if e_s_obj.get("koc_id") in db["koclar"] else 0, format_func=lambda x: db["koclar"][x]["ad"], key="edit_s_koc")
+            edit_s_soz = st.text_area("Motivasyon / Özlü Söz:", value=e_s_obj.get("ozlu_soz", ""), key="edit_s_soz")
+
+            if st.button("💾 Öğrenci Bilgilerini Güncelle", type="primary"):
+                e_s_obj["ad"] = edit_s_ad
+                e_s_obj["sifre"] = edit_s_sifre
+                e_s_obj["koc_id"] = edit_s_koc
+                e_s_obj["ozlu_soz"] = edit_s_soz
+                save_db(db)
+                st.success(f"✅ {edit_s_ad} bilgileri başarıyla güncellendi!")
+                st.rerun()
+
+    with tab_o3:
         silinecek_ogrenciler = list(filtre_ogrenciler.keys()) if role == "Koç" else list(db["ogrenciler"].keys())
         if len(silinecek_ogrenciler) > 0:
-            del_s_id = st.selectbox("Silinecek Öğrenciyi Seçin:", silinecek_ogrenciler, format_func=lambda x: f"{db['ogrenciler'][x]['ad']} ({x})")
+            del_s_id = st.selectbox("Silinecek Öğrenciyi Seçin:", silinecek_ogrenciler, format_func=lambda x: f"{db['ogrenciler'][x]['ad']} ({x})", key="del_s_select")
             if st.button("❌ Seçili Öğrenciyi Sil", type="secondary"):
                 del db["ogrenciler"][del_s_id]
                 save_db(db)
                 st.success("Öğrenci silindi ve veritabanı güncellendi!")
                 st.rerun()
 
-    st.divider()
+    # --------------------------------------------------------------------------
+    # KOÇ YÖNETİMİ (ANA YÖNETİCİ ÖZEL: EKLE / DÜZENLE / SİL)
+    # --------------------------------------------------------------------------
     if role == "Ana Yönetici":
+        st.divider()
         st.subheader("👑 Ana Yönetici Özel Paneli: Koç Yönetimi")
-        col_ke1, col_ke2 = st.columns(2)
         
-        with col_ke1:
-            st.markdown("### ➕ Yeni Koç Ekle")
-            new_k_username = st.text_input("Koç Kullanıcı Adı (Örn: koc3):").strip().lower()
-            new_k_fullname = st.text_input("Koç Adı Soyadı (Örn: Ayşe Hoca):")
-            new_k_pass = st.text_input("Koç Şifresi:", value="koc123")
+        tab_k1, tab_k2, tab_k3 = st.tabs(["➕ Koç Ekle", "✏️ Koç Bilgilerini Düzenle", "🗑️ Koç Sil"])
+        
+        with tab_k1:
+            new_k_username = st.text_input("Koç Kullanıcı Adı (Örn: koc3):", key="add_k_usr").strip().lower()
+            new_k_fullname = st.text_input("Koç Adı Soyadı (Örn: Ayşe Hoca):", key="add_k_full")
+            new_k_pass = st.text_input("Koç Şifresi:", value="koc123", key="add_k_pwd")
             
             if st.button("➕ Yeni Koç Oluştur", type="primary"):
                 if new_k_username and new_k_fullname:
@@ -608,11 +694,26 @@ elif secili_menu == "⚙️ Yönetim Paneli" and role in ["Koç", "Ana Yönetici
                     st.success(f"✅ Koç {new_k_fullname} eklendi!")
                     st.rerun()
 
-        with col_ke2:
-            st.markdown("### 🗑️ Koç Sil")
+        with tab_k2:
+            edit_k_id = st.selectbox("Düzenlenecek Koçu Seçin:", list(db["koclar"].keys()), format_func=lambda x: f"{db['koclar'][x]['ad']} ({x})", key="edit_k_select")
+            e_k_obj = db["koclar"][edit_k_id]
+            
+            edit_k_ad = st.text_input("Koç Adı Soyadı:", value=e_k_obj.get("ad", ""), key="edit_k_ad")
+            edit_k_sifre = st.text_input("Koç Şifresi:", value=e_k_obj.get("sifre", ""), key="edit_k_sifre")
+            edit_k_lisans = st.checkbox("Lisans Aktif", value=e_k_obj.get("lisans", True), key="edit_k_lisans")
+
+            if st.button("💾 Koç Bilgilerini Güncelle", type="primary"):
+                e_k_obj["ad"] = edit_k_ad
+                e_k_obj["sifre"] = edit_k_sifre
+                e_k_obj["lisans"] = edit_k_lisans
+                save_db(db)
+                st.success(f"✅ Koç {edit_k_ad} bilgileri güncellendi!")
+                st.rerun()
+
+        with tab_k3:
             koc_sil_listesi = [k for k in db["koclar"].keys() if k != "admin"]
             if len(koc_sil_listesi) > 0:
-                del_k_id = st.selectbox("İşlem Yapılacak Koç:", koc_sil_listesi, format_func=lambda x: f"{db['koclar'][x]['ad']} ({x})")
+                del_k_id = st.selectbox("İşlem Yapılacak Koç:", koc_sil_listesi, format_func=lambda x: f"{db['koclar'][x]['ad']} ({x})", key="del_k_select")
                 if st.button("❌ Seçili Koçu Sil"):
                     del db["koclar"][del_k_id]
                     save_db(db)
