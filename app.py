@@ -95,7 +95,7 @@ if not st.session_state["logged_in"]:
     st.markdown('<div class="main-title">🦅 ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">LGS Başarı & Performans Takip Sistemi</div>', unsafe_allow_html=True)
     
-    col_c1, col_box, col_c2 = st.columns()
+    col_c1, col_box, col_c2 = st.columns([1, 2, 1])
     with col_box:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         rol_secim = st.radio("🔑 Giriş Türünü Seçiniz:", ["👨‍🎓 Öğrenci Girişi", "👨‍🏫 Koç Girişi", "👑 Ana Yönetici Girişi"], horizontal=True)
@@ -150,7 +150,7 @@ elif role in ["Koç", "Ana Yönetici"]:
     filtre_ogrenciler = {k: v for k, v in db["ogrenciler"].items() if v["koc_id"] == curr_usr} if role == "Koç" else db["ogrenciler"]
     if len(filtre_ogrenciler) > 0:
         if st.session_state["selected_student_id"] not in filtre_ogrenciler:
-            st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())
+            st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())[0]
         active_stud_id = st.session_state["selected_student_id"]
     else:
         active_stud_id = None
@@ -223,7 +223,7 @@ if not active_stud_id and role != "Ana Yönetici":
     st.stop()
 
 # ==============================================================================
-# 1. GÜNLÜK ÇALIŞMA, SÜRE, KİTAP OKUMA VE ÖZ DEĞERLENDİRME (BİRLEŞTİRİLDİ)
+# 1. GÜNLÜK ÇALIŞMA, SÜRE, KİTAP OKUMA VE ÖZ DEĞERLENDİRME
 # ==============================================================================
 if secili_menu == "📝 Günlük Çalışma & Kitap Okuma":
     if active_stud_id:
