@@ -32,27 +32,24 @@ def save_db(data):
             return False
     return False
 
-# 1. SAYFA YAPILANDIRMASI VE GELİŞMİŞ RENKLİ CSS STİLİ
+# 1. SAYFA YAPILANDIRMASI VE GELİŞMİŞ RENKLİ / KARANLIK MOD CSS STİLİ
 st.set_page_config(page_title="ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ", layout="wide", page_icon="🦅")
 
 st.markdown("""
 <style>
-    /* Genel Arka Plan ve Tipografi */
-    .stApp {
-        background-color: #F8FAFC;
-    }
+    /* Genel Tipografi ve Stil */
     .main-title {
-        font-size: 2.5rem;
+        font-size: 2.3rem;
         background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
         font-weight: 900;
         letter-spacing: -0.5px;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
     }
     .sub-title {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         color: #475569;
         text-align: center;
         font-weight: 600;
@@ -60,10 +57,10 @@ st.markdown("""
     }
     .login-card {
         background: #FFFFFF;
-        padding: 32px;
-        border-radius: 18px;
+        padding: 30px;
+        border-radius: 16px;
         border: 1px solid #E2E8F0;
-        box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.08);
     }
     .sidebar-brand {
         background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
@@ -85,12 +82,51 @@ st.markdown("""
         margin: 0;
         font-size: 0.85rem;
     }
-    .metric-box {
-        background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-        border-left: 5px solid #2563EB;
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 15px;
+
+    /* KARANLIK MOD (DARK MODE) UYUMU VE METİN OKUNABİLİRLİĞİ */
+    @media (prefers-color-scheme: dark) {
+        .stApp {
+            background-color: #0F172A !important;
+            color: #F8FAFC !important;
+        }
+        .login-card {
+            background-color: #1E293B !important;
+            border-color: #334155 !important;
+            color: #F8FAFC !important;
+        }
+        [data-testid="stSidebar"] {
+            background-color: #0F172A !important;
+        }
+        [data-testid="stSidebar"] p, 
+        [data-testid="stSidebar"] span, 
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] div,
+        [data-testid="stSidebar"] .stRadio label p {
+            color: #F8FAFC !important;
+        }
+        .main-title {
+            background: linear-gradient(135deg, #60A5FA 0%, #93C5FD 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sub-title {
+            color: #94A3B8 !important;
+        }
+    }
+
+    /* LIGHT MODE İÇİN SİDEBAR YAZI NETLİĞİ */
+    @media (prefers-color-scheme: light) {
+        [data-testid="stSidebar"] p, 
+        [data-testid="stSidebar"] span, 
+        [data-testid="stSidebar"] label {
+            color: #1E293B !important;
+        }
+    }
+
+    /* MENÜ RADYO BUTONLARI BÜYÜKLÜK VE NETLİK */
+    [data-testid="stSidebar"] .stRadio label p {
+        font-size: 1.05rem !important;
+        font-weight: 600 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -120,23 +156,39 @@ if "db" not in st.session_state:
 
 db = st.session_state["db"]
 
-# ADMIN HESABININ KOÇ LİSTESİNDE DAİMA BULUNMASINI SAĞLA
 if "admin" not in db["koclar"]:
     db["koclar"]["admin"] = {"ad": "Ana Yönetici (Siz)", "sifre": "admin123", "lisans": True}
 
-# LGS MÜFREDATI
+# SADELEŞTİRİLMİŞ 6 ANA LGS DERSİ VE MÜFREDAT KONULARI
 LGS_MUSERFAT = {
-    "Türkçe (Genel)": ["Fiilimsiler", "Sözcükte Anlam", "Cümlede Anlam", "Cümle Ögeleri", "Cümle Türleri", "Yazım Kuralları", "Noktalama İşaretleri", "Metin Türleri", "Söz Sanatları", "Anlatım Bozuklukları"],
-    "Türkçe (Paragraf)": ["Paragrafta Ana Fikir ve Konu", "Paragrafta Yardımcı Fikir", "Paragraf Yapısı ve Akış", "Görsel Okuma ve Grafikler", "Sözel Mantık ve Muhakeme"],
-    "Matematik (Kazanım)": ["Çarpanlar ve Katlar", "Üslü İfadeler", "Kareköklü İfadeler", "Veri Analizi", "Olasılık", "Cebirsel İfadeler ve Özdeşlikler", "Doğrusal Denklemler", "Eşitsizlikler", "Üçgenler", "Eşlik ve Benzerlik", "Dönüşüm Geometrisi", "Geometrik Cisimler"],
-    "Matematik (Yeni Nesil)": ["Çarpanlar ve Katlar (Beceri Temelli)", "Üslü İfadeler (Beceri Temelli)", "Kareköklü İfadeler (Beceri Temelli)", "Veri Analizi (Grafik Yorumlama)", "Olasılık (Muhakeme)", "Cebirsel İfadeler (Model)", "Denklemler ve Eşitsizlikler (Yeni Nesil)", "Üçgenler ve Benzerlik (Yeni Nesil)", "Geometrik Cisimler (Yeni Nesil)"],
-    "Fen Bilimleri": ["Mevsimler ve İklim", "DNA ve Genetik Kod", "Basınç", "Madde ve Endüstri", "Basit Makineler", "Enerji Dönüşümleri ve Çevre Bilimi", "Elektrik Yükleri ve Elektrik Enerjisi"],
-    "T.C. İnkılap Tarihi": ["Bir Kahraman Doğuyor", "Milli Uyanış", "Ya İstiklal Ya Ölüm!", "Atatürkçülük ve Çağdaşlaşan Türkiye", "Demokratikleşme Çabaları", "Atatürk Dönemi Dış Politika", "Atatürk'ün Ölümü ve Sonrası"],
-    "Din Kültürü ve A.B.": ["Kader İnancı", "Zekat ve Sadaka", "Din ve Hayat", "Hz. Muhammed'in Örnekliği", "Kur'an-ı Kerim ve Özellikleri"],
-    "İngilizce": ["Unit 1: Friendship", "Unit 2: Teen Life", "Unit 3: In the Kitchen", "Unit 4: On the Phone", "Unit 5: The Internet", "Unit 6: Adventures", "Unit 7: Tourism", "Unit 8: Chores", "Unit 9: Science", "Unit 10: Natural Forces"]
+    "Türkçe": [
+        "Fiilimsiler", "Sözcükte Anlam", "Cümlede Anlam", "Cümle Ögeleri", "Cümle Türleri",
+        "Yazım Kuralları", "Noktalama İşaretleri", "Metin Türleri", "Söz Sanatları", "Anlatım Bozuklukları",
+        "Paragrafta Ana Fikir ve Konu", "Paragrafta Yardımcı Fikir", "Paragraf Yapısı ve Akış", "Görsel Okuma ve Grafikler", "Sözel Mantık ve Muhakeme"
+    ],
+    "Matematik": [
+        "Çarpanlar ve Katlar", "Üslü İfadeler", "Kareköklü İfadeler", "Veri Analizi", "Olasılık",
+        "Cebirsel İfadeler ve Özdeşlikler", "Doğrusal Denklemler", "Eşitsizlikler", "Üçgenler",
+        "Eşlik ve Benzerlik", "Dönüşüm Geometrisi", "Geometrik Cisimler"
+    ],
+    "Fen Bilimleri": [
+        "Mevsimler ve İklim", "DNA ve Genetik Kod", "Basınç", "Madde ve Endüstri",
+        "Basit Makineler", "Enerji Dönüşümleri ve Çevre Bilimi", "Elektrik Yükleri ve Elektrik Enerjisi"
+    ],
+    "T.C. İnkılap Tarihi": [
+        "Bir Kahraman Doğuyor", "Milli Uyanış", "Ya İstiklal Ya Ölüm!", "Atatürkçülük ve Çağdaşlaşan Türkiye",
+        "Demokratikleşme Çabaları", "Atatürk Dönemi Dış Politika", "Atatürk'ün Ölümü ve Sonrası"
+    ],
+    "Din Kültürü ve A.B.": [
+        "Kader İnancı", "Zekat ve Sadaka", "Din ve Hayat", "Hz. Muhammed'in Örnekliği", "Kur'an-ı Kerim ve Özellikleri"
+    ],
+    "İngilizce": [
+        "Unit 1: Friendship", "Unit 2: Teen Life", "Unit 3: In the Kitchen", "Unit 4: On the Phone",
+        "Unit 5: The Internet", "Unit 6: Adventures", "Unit 7: Tourism", "Unit 8: Chores", "Unit 9: Science", "Unit 10: Natural Forces"
+    ]
 }
 
-ANA_LGS_DERSLERI = ["Türkçe", "Matematik", "Fen Bilimleri", "T.C. İnkılap Tarihi", "Din Kültürü ve A.B.", "İngilizce"]
+ANA_LGS_DERSLERI = list(LGS_MUSERFAT.keys())
 SEBEP_LISTESI = ["Yok / Hepsi Doğru", "Dikkat / İşlem Hatası", "Konu Bilgisi Eksik", "Soru Tarzını / Öncülü Anlamadım", "Süre Yetmedi", "İki Şık Arasında Kaldım / Tahmin Ettim"]
 GUNLER = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
@@ -207,7 +259,7 @@ elif role in ["Koç", "Ana Yönetici"]:
     filtre_ogrenciler = {k: v for k, v in db["ogrenciler"].items() if v["koc_id"] == curr_usr} if role == "Koç" else db["ogrenciler"]
     if len(filtre_ogrenciler) > 0:
         if st.session_state["selected_student_id"] not in filtre_ogrenciler:
-            st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())[0]
+            st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())
         active_stud_id = st.session_state["selected_student_id"]
     else:
         active_stud_id = None
