@@ -321,7 +321,7 @@ if secili_menu == "📝 Günlük Çalışma & Kitap Okuma":
         st.subheader("📖 Kitap Okuma ve Günlük Öz Değerlendirme")
         col_k1, col_k2 = st.columns(2)
         with col_k1:
-            kitap_adi = st.text_input("Bugün Okunan Kitap Adı", "BENİM KİTABIM")
+            kitap_adi = st.text_input("Bugün Okunan Kitap Adı", "OKU")
         with col_k2:
             okunan_sayfa = st.number_input("Bugün Okunan Sayfa Sayısı", min_value=0, value=20)
 
