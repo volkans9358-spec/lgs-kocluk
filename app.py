@@ -2,36 +2,72 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import datetime
-https://script.google.com/macros/s/AKfycbzJ1udjB5PymW1Msl7Zk51t7uwATJzVYds9F98iq7kalanTvtQUvOfmG87Y6HaER2BS/exec
-# 1. SAYFA YAPILANDIRMASI VE ŞIK STİL (CUSTOM CSS)
+import requests
+import json
+
+# ==============================================================================
+# GOOGLE SHEETS BAGLANTI URL'SI
+# ==============================================================================
+GSHEETS_URL = "https://script.google.com/macros/s/AKfycbzJ1udjB5PymW1Msl7Zk51t7uwATJzVYds9F98iq7kalanTvtQUvOfmG87Y6HaER2BS/exec"
+
+def load_db():
+    if GSHEETS_URL and GSHEETS_URL.startswith("http"):
+        try:
+            res = requests.get(GSHEETS_URL, timeout=8)
+            if res.status_code == 200:
+                val = res.json()
+                if isinstance(val, dict) and "koclar" in val and "ogrenciler" in val:
+                    return val
+        except Exception:
+            pass
+    return None
+
+def save_db(data):
+    if GSHEETS_URL and GSHEETS_URL.startswith("http"):
+        try:
+            headers = {'Content-Type': 'application/json'}
+            res = requests.post(GSHEETS_URL, data=json.dumps(data), headers=headers, timeout=10)
+            return res.status_code == 200
+        except Exception:
+            return False
+    return False
+
+# 1. SAYFA YAPILANDIRMASI VE ŞIK STİL
 st.set_page_config(page_title="ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ", layout="wide", page_icon="🦅")
 
 st.markdown("""
 <style>
-    .main-title {
-        font-size: 2.3rem;
-        color: #1E3A8A;
-        text-align: center;
-        font-weight: 800;
-        margin-bottom: 5px;
-    }
-    .sub-title {
-        font-size: 1.1rem;
-        color: #4B5563;
-        text-align: center;
-        margin-bottom: 25px;
-    }
-    .login-card {
-        background-color: #F8FAFC;
-        padding: 25px;
-        border-radius: 15px;
-        border: 1px solid #E2E8F0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
+    .main-title { font-size: 2.2rem; color: #1E3A8A; text-align: center; font-weight: 800; margin-bottom: 5px; }
+    .sub-title { font-size: 1.1rem; color: #4B5563; text-align: center; margin-bottom: 20px; }
+    .login-card { background-color: #F8FAFC; padding: 25px; border-radius: 15px; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. LGS MÜFREDATI VE AKILLI AYRIMLAR
+# 2. VERİTABANI YÜKLEME
+db_remote = load_db()
+
+if "db" not in st.session_state:
+    if db_remote:
+        st.session_state["db"] = db_remote
+    else:
+        st.session_state["db"] = {
+            "koclar": {
+                "koc1": {"ad": "Ahmet Hoca", "sifre": "koc123", "lisans": True},
+                "koc2": {"ad": "Mehmet Hoca", "sifre": "koc123", "lisans": False}
+            },
+            "ogrenciler": {
+                "ali": {
+                    "ad": "Ali Yılmaz", "sifre": "1234", "koc_id": "koc1",
+                    "calisma": [], "deneme": [], "meb_cikmis_konu": {}, "haftalik_program": [],
+                    "hedef_netler": {"Türkçe": 18.0, "Matematik": 15.0, "Fen Bilimleri": 18.0, "T.C. İnkılap Tarihi": 9.0, "Din Kültürü ve A.B.": 10.0, "İngilizce": 9.0},
+                    "ozlu_soz": "Başarı, her gün tekrarlanan küçük çabaların toplamıdır!"
+                }
+            }
+        }
+
+db = st.session_state["db"]
+
+# LGS MÜFREDATI
 LGS_MUSERFAT = {
     "Türkçe (Genel)": ["Fiilimsiler", "Sözcükte Anlam", "Cümlede Anlam", "Cümle Ögeleri", "Cümle Türleri", "Yazım Kuralları", "Noktalama İşaretleri", "Metin Türleri", "Söz Sanatları", "Anlatım Bozuklukları"],
     "Türkçe (Paragraf)": ["Paragrafta Ana Fikir ve Konu", "Paragrafta Yardımcı Fikir", "Paragraf Yapısı ve Akış", "Görsel Okuma ve Grafikler", "Sözel Mantık ve Muhakeme"],
@@ -44,17 +80,9 @@ LGS_MUSERFAT = {
 }
 
 ANA_LGS_DERSLERI = ["Türkçe", "Matematik", "Fen Bilimleri", "T.C. İnkılap Tarihi", "Din Kültürü ve A.B.", "İngilizce"]
+SEBEP_LISTESI = ["Yok / Hepsi Doğru", "Dikkat / İşlem Hatası", "Konu Bilgisi Eksik", "Soru Tarzını / Öncülü Anlamadım", "Süre Yetmedi", "İki Şık Arasında Kaldım / Tahmin Ettim"]
+GUNLER = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
-SEBEP_LISTESI = [
-    "Yok / Hepsi Doğru",
-    "Dikkat / İşlem Hatası",
-    "Konu Bilgisi Eksik",
-    "Soru Tarzını / Öncülü Anlamadım",
-    "Süre Yetmedi",
-    "İki Şık Arasında Kaldım / Tahmin Ettim"
-]
-
-# 3. VERİTABANI İLKLEME (SESSION STATE)
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "user_role" not in st.session_state:
@@ -62,47 +90,22 @@ if "user_role" not in st.session_state:
 if "current_user" not in st.session_state:
     st.session_state["current_user"] = None
 
-if "koclar" not in st.session_state:
-    st.session_state["koclar"] = {
-        "koc1": {"ad": "Ahmet Hoca", "sifre": "koc123", "lisans": True},
-        "koc2": {"ad": "Mehmet Hoca", "sifre": "koc123", "lisans": False}
-    }
-
-if "ogrenciler" not in st.session_state:
-    st.session_state["ogrenciler"] = {
-        "ali": {
-            "ad": "Ali Yılmaz", "sifre": "1234", "koc_id": "koc1",
-            "calisma": [], "deneme": [], "kitap_ozdegerlendirme": [],
-            "hedef_netler": {"Türkçe": 18.0, "Matematik": 15.0, "Fen Bilimleri": 18.0, "T.C. İnkılap Tarihi": 9.0, "Din Kültürü ve A.B.": 10.0, "İngilizce": 9.0},
-            "ozlu_soz": "Başarı, her gün tekrarlanan küçük çabaların toplamıdır!"
-        },
-        "zeynep": {
-            "ad": "Zeynep Kaya", "sifre": "1234", "koc_id": "koc1",
-            "calisma": [], "deneme": [], "kitap_ozdegerlendirme": [],
-            "hedef_netler": {"Türkçe": 19.0, "Matematik": 17.0, "Fen Bilimleri": 19.0, "T.C. İnkılap Tarihi": 10.0, "Din Kültürü ve A.B.": 10.0, "İngilizce": 10.0},
-            "ozlu_soz": "İnanmak, başarmanın yarısıdır!"
-        }
-    }
-
-# ----------------------------------------------------
-# 4. ŞIK KARŞILAMA VE GİRİŞ EKRANI
-# ----------------------------------------------------
+# GİRİŞ EKRANI
 if not st.session_state["logged_in"]:
     st.markdown('<div class="main-title">🦅 ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">LGS Başarı & Performans Takip Sistemi</div>', unsafe_allow_html=True)
     
-    col_cen, col_box, col_cen2 = st.columns([1, 2, 1])
-    
+    col_c1, col_box, col_c2 = st.columns()
     with col_box:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         rol_secim = st.radio("🔑 Giriş Türünü Seçiniz:", ["👨‍🎓 Öğrenci Girişi", "👨‍🏫 Koç Girişi", "👑 Ana Yönetici Girişi"], horizontal=True)
         st.divider()
         
         if rol_secim == "👨‍🎓 Öğrenci Girişi":
-            usr = st.text_input("Kullanıcı Adı (Örn: ali, zeynep):", key="in_stud_usr").strip().lower()
+            usr = st.text_input("Kullanıcı Adı (Örn: ali):", key="in_stud_usr").strip().lower()
             pwd = st.text_input("Şifre:", type="password", key="in_stud_pwd")
             if st.button("🚀 Öğrenci Olarak Giriş Yap", type="primary", use_container_width=True):
-                if usr in st.session_state["ogrenciler"] and st.session_state["ogrenciler"][usr]["sifre"] == pwd:
+                if usr in db["ogrenciler"] and db["ogrenciler"][usr]["sifre"] == pwd:
                     st.session_state["logged_in"] = True
                     st.session_state["user_role"] = "Öğrenci"
                     st.session_state["current_user"] = usr
@@ -114,7 +117,7 @@ if not st.session_state["logged_in"]:
             usr = st.text_input("Koç Kullanıcı Adı (Örn: koc1):", key="in_koc_usr").strip().lower()
             pwd = st.text_input("Şifre:", type="password", key="in_koc_pwd")
             if st.button("🚀 Koç Olarak Giriş Yap", type="primary", use_container_width=True):
-                if usr in st.session_state["koclar"] and st.session_state["koclar"][usr]["sifre"] == pwd:
+                if usr in db["koclar"] and db["koclar"][usr]["sifre"] == pwd:
                     st.session_state["logged_in"] = True
                     st.session_state["user_role"] = "Koç"
                     st.session_state["current_user"] = usr
@@ -135,9 +138,6 @@ if not st.session_state["logged_in"]:
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-# ----------------------------------------------------
-# 5. OTURUM YÖNETİMİ & KULLANICI SEÇİMİ
-# ----------------------------------------------------
 role = st.session_state["user_role"]
 curr_usr = st.session_state["current_user"]
 
@@ -147,17 +147,17 @@ if "selected_student_id" not in st.session_state:
 if role == "Öğrenci":
     active_stud_id = curr_usr
 elif role in ["Koç", "Ana Yönetici"]:
-    filtre_ogrenciler = {k: v for k, v in st.session_state["ogrenciler"].items() if v["koc_id"] == curr_usr} if role == "Koç" else st.session_state["ogrenciler"]
+    filtre_ogrenciler = {k: v for k, v in db["ogrenciler"].items() if v["koc_id"] == curr_usr} if role == "Koç" else db["ogrenciler"]
     if len(filtre_ogrenciler) > 0:
         if st.session_state["selected_student_id"] not in filtre_ogrenciler:
-            st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())[0]
+            st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())
         active_stud_id = st.session_state["selected_student_id"]
     else:
         active_stud_id = None
 
-# ----------------------------------------------------
-# 6. YAN MENÜ (SIDEBAR) & ŞİFRE DEĞİŞTİRME
-# ----------------------------------------------------
+# ==============================================================================
+# DİKEY YAN MENÜ (ALT ALTA NAVİGASYON)
+# ==============================================================================
 with st.sidebar:
     st.markdown("### 🦅 ŞAHİN MATH CHECK-UP")
     st.caption("Koçluk Akademisi")
@@ -165,39 +165,51 @@ with st.sidebar:
     
     if role == "Ana Yönetici":
         st.success("👑 **Süper Admin**")
-        if len(st.session_state["ogrenciler"]) > 0:
+        if len(db["ogrenciler"]) > 0:
             st.session_state["selected_student_id"] = st.selectbox(
-                "İncelenen Öğrenci:", list(st.session_state["ogrenciler"].keys()),
-                format_func=lambda x: f"{st.session_state['ogrenciler'][x]['ad']} ({x})"
+                "İncelenen Öğrenci:", list(db["ogrenciler"].keys()),
+                format_func=lambda x: f"{db['ogrenciler'][x]['ad']} ({x})"
             )
     elif role == "Koç":
-        koc_adi = st.session_state["koclar"][curr_usr]["ad"]
-        st.markdown(f"**Koç:** {koc_adi}")
+        st.markdown(f"**Koç:** {db['koclar'][curr_usr]['ad']}")
         if len(filtre_ogrenciler) > 0:
             st.session_state["selected_student_id"] = st.selectbox(
                 "Öğrenciniz:", list(filtre_ogrenciler.keys()),
                 format_func=lambda x: f"{filtre_ogrenciler[x]['ad']} ({x})"
             )
     elif role == "Öğrenci":
-        st.markdown(f"**Öğrenci:** {st.session_state['ogrenciler'][active_stud_id]['ad']}")
+        st.markdown(f"**Öğrenci:** {db['ogrenciler'][active_stud_id]['ad']}")
 
     st.divider()
-    
-    # ŞİFRE DEĞİŞTİRME EXPANDER
+
+    # DİKEY MENÜ SEÇİMİ (ALT ALTA SEÇENEKLER)
+    menu_options = [
+        "📝 Günlük Çalışma & Kitap Okuma",
+        "📅 Haftalık Ders Çalışma Programı",
+        "📊 Deneme Sınavları & Konu Hataları",
+        "📚 MEB & Çıkmış Sorular (Konu Konu)",
+        "👨‍👩‍👧 Veli & Koç Analiz Paneli"
+    ]
+    if role in ["Koç", "Ana Yönetici"]:
+        menu_options.append("⚙️ Yönetim Paneli")
+
+    secili_menu = st.radio("📌 **AKADEMİ MENÜSÜ**", menu_options)
+
+    st.divider()
     with st.expander("🔑 Şifremi Değiştir"):
         yeni_pass = st.text_input("Yeni Şifreniz:", type="password", key="side_new_pass")
         if st.button("Şifreyi Güncelle"):
             if yeni_pass:
                 if role == "Öğrenci":
-                    st.session_state["ogrenciler"][curr_usr]["sifre"] = yeni_pass
+                    db["ogrenciler"][curr_usr]["sifre"] = yeni_pass
                 elif role == "Koç":
-                    st.session_state["koclar"][curr_usr]["sifre"] = yeni_pass
-                st.success("Şifreniz güncellendi!")
+                    db["koclar"][curr_usr]["sifre"] = yeni_pass
+                save_db(db)
+                st.success("Şifreniz Google Sheets'e kaydedildi!")
 
-    if active_stud_id and active_stud_id in st.session_state["ogrenciler"]:
-        ogr_obj = st.session_state["ogrenciler"][active_stud_id]
+    if active_stud_id and active_stud_id in db["ogrenciler"]:
         st.divider()
-        st.warning(f"💡 **Motivasyon Notu:**\n\n_{ogr_obj['ozlu_soz']}_")
+        st.warning(f"💡 **Motivasyon Notu:**\n\n_{db['ogrenciler'][active_stud_id]['ozlu_soz']}_")
 
     st.divider()
     if st.button("🚪 Çıkış Yap", type="secondary", use_container_width=True):
@@ -206,27 +218,17 @@ with st.sidebar:
         st.session_state["current_user"] = None
         st.rerun()
 
-# ----------------------------------------------------
-# 7. SEKMELER
-# ----------------------------------------------------
-tab_names = ["📝 Günlük Veri & Süre Girişi", "📊 Deneme & Konu Hataları", "📚 MEB & Çıkmışlar", "📖 Kitap & Öz Değerlendirme", "👨‍👩‍👧 Veli & Koç Analiz"]
-if role in ["Koç", "Ana Yönetici"]:
-    tab_names.append("⚙️ Yönetim Paneli")
-
-tabs = st.tabs(tab_names)
-
 if not active_stud_id and role != "Ana Yönetici":
     st.warning("İşlem yapmak için tanımlı bir öğrenci gereklidir.")
     st.stop()
 
-# ----------------------------------------------------
-# TAB 1: GÜNLÜK VERİ & DERS BAZLI SÜRE GİRİŞİ
-# ----------------------------------------------------
-with tabs[0]:
+# ==============================================================================
+# 1. GÜNLÜK ÇALIŞMA, SÜRE, KİTAP OKUMA VE ÖZ DEĞERLENDİRME (BİRLEŞTİRİLDİ)
+# ==============================================================================
+if secili_menu == "📝 Günlük Çalışma & Kitap Okuma":
     if active_stud_id:
-        ogr_obj = st.session_state["ogrenciler"][active_stud_id]
-        st.header(f"Günlük Ders Çalışma ve Süre Girişi ({ogr_obj['ad']})")
-        st.caption("Her ders ve konu için harcadığınız süreyi ve soru sayılarını ayrı ayrı kaydedebilirsiniz.")
+        ogr_obj = db["ogrenciler"][active_stud_id]
+        st.header(f"📌 Günlük Ders Çalışma, Süre ve Kitap Okuma Girişi ({ogr_obj['ad']})")
         
         col_t1, col_t2 = st.columns(2)
         with col_t1:
@@ -242,6 +244,16 @@ with tabs[0]:
             hata_sebebi = st.selectbox("Yanlış / Boş Soruların Ana Sebebi", SEBEP_LISTESI)
             yapilamayana_bakildi = st.radio("Yapamadığın Soruların Çözümüne Baktın mı?", ["Evet", "Hayır"], horizontal=True)
 
+        st.divider()
+        st.subheader("📖 Kitap Okuma ve Günlük Öz Değerlendirme")
+        col_k1, col_k2 = st.columns(2)
+        with col_k1:
+            kitap_adi = st.text_input("Bugün Okunan Kitap Adı", "Şeker Portakalı")
+        with col_k2:
+            okunan_sayfa = st.number_input("Bugün Okunan Sayfa Sayısı", min_value=0, value=20)
+
+        gunluk_not = st.text_area("Günün Öz Değerlendirmesi / Çalışma Notun:", "Bugün yeni nesil sorularda iyi ilerledim, eksiklerimi tamamladım...")
+
         st.subheader("⏰ Çalışma Saat Aralığı")
         col_s1, col_s2, col_riayet = st.columns(3)
         with col_s1:
@@ -254,20 +266,65 @@ with tabs[0]:
         if bitis.hour >= 23 or bitis.hour < 5:
             st.warning("⚠️ **Geç Saat Uyarısı:** Gece geç saatlerde çalışmak verimi düşürebilir!")
 
-        if st.button("💾 Günlük Dersi ve Süreyi Kaydet", type="primary"):
+        if st.button("💾 Günlük Tüm Verileri Kaydet", type="primary", use_container_width=True):
             ogr_obj["calisma"].append({
-                "Tarih": tarih, "Ders": ders, "Konu": konu, "Süre (dk)": sure_dk,
+                "Tarih": str(tarih), "Ders": ders, "Konu": konu, "Süre (dk)": sure_dk,
                 "Doğru": dogru, "Yanlış": yanlis, "Boş": bos, "Çözülen": dogru + yanlis + bos,
-                "Hata Sebebi": hata_sebebi, "Çözüme Bakıldı": yapilamayana_bakildi, "Programa Uyum": programa_riayet
+                "Hata Sebebi": hata_sebebi, "Çözüme Bakıldı": yapilamayana_bakildi, "Programa Uyum": programa_riayet,
+                "Kitap": kitap_adi, "Sayfa": okunan_sayfa, "Not": gunluk_not
             })
-            st.success(f"✅ {ders} - {konu} çalışması ({sure_dk} dk) başarıyla kaydedildi!")
+            save_db(db)
+            st.success("✅ Günlük ders, süre, kitap okuma ve öz değerlendirme kaydınız kalıcı olarak Google Sheets'e eklendi!")
 
-# ----------------------------------------------------
-# TAB 2: DENEME SINAVLARI VE KONU BAZLI HATA İŞARETLEME
-# ----------------------------------------------------
-with tabs[1]:
+# ==============================================================================
+# 2. HAFTALIK DERS ÇALIŞMA PROGRAMI TABLOSU
+# ==============================================================================
+elif secili_menu == "📅 Haftalık Ders Çalışma Programı":
     if active_stud_id:
-        ogr_obj = st.session_state["ogrenciler"][active_stud_id]
+        ogr_obj = db["ogrenciler"][active_stud_id]
+        if "haftalik_program" not in ogr_obj:
+            ogr_obj["haftalik_program"] = []
+
+        st.header(f"📅 Haftalık Ders Çalışma Programı ({ogr_obj['ad']})")
+        st.caption("Haftalık ders programınızı gün ve saat aralıklarıyla belirleyebilirsiniz.")
+
+        with st.expander("➕ Programa Yeni Ders / Saat Ekle"):
+            col_p1, col_p2, col_p3, col_p4 = st.columns(4)
+            with col_p1:
+                prog_gun = st.selectbox("Gün Seç:", GUNLER)
+            with col_p2:
+                prog_saat = st.text_input("Saat Aralığı (Örn: 16:30 - 18:00):", "16:30 - 18:00")
+            with col_p3:
+                prog_ders = st.selectbox("Ders / Konu:", list(LGS_MUSERFAT.keys()))
+            with col_p4:
+                prog_hedef = st.number_input("Hedef Soru Sayısı:", min_value=0, value=40)
+
+            if st.button("➕ Ders Programına Ekle"):
+                ogr_obj["haftalik_program"].append({
+                    "Gün": prog_gun, "Saat Aralığı": prog_saat, "Ders": prog_ders, "Hedef Soru": prog_hedef
+                })
+                save_db(db)
+                st.success("Program güncellendi!")
+
+        st.divider()
+        st.subheader("📋 Mevcut Haftalık Çalışma Programınız")
+        if len(ogr_obj["haftalik_program"]) > 0:
+            df_prog = pd.DataFrame(ogr_obj["haftalik_program"])
+            st.dataframe(df_prog, use_container_width=True)
+            if st.button("🗑️ Programı Temizle / Sıfırla"):
+                ogr_obj["haftalik_program"] = []
+                save_db(db)
+                st.warning("Haftalık program sıfırlandı!")
+                st.rerun()
+        else:
+            st.info("Henüz oluşturulmuş bir haftalık çalışma programı bulunmuyor.")
+
+# ==============================================================================
+# 3. DENEME SINAVLARI VE KONU BAZLI HATA İŞARETLEME
+# ==============================================================================
+elif secili_menu == "📊 Deneme Sınavları & Konu Hataları":
+    if active_stud_id:
+        ogr_obj = db["ogrenciler"][active_stud_id]
         st.header(f"🎯 LGS Deneme Netleri ve Konu Hataları ({ogr_obj['ad']})")
         
         col_d1, col_d2 = st.columns(2)
@@ -287,12 +344,11 @@ with tabs[1]:
 
         st.divider()
         st.subheader("📌 Denemedeki Yanlış / Boş Soruların Konu Dağılımı")
-        st.caption("Hangi konudan kaç yanlış veya boş yaptığınızı seçiniz (Örn: 1 Yanlış Çarpanlar ve Katlar)")
         
         if "temp_deneme_hatalari" not in st.session_state:
             st.session_state["temp_deneme_hatalari"] = []
 
-        col_h1, col_h2, col_h3, col_h4 = st.columns([2, 2, 1, 1])
+        col_h1, col_h2, col_h3, col_h4 = st.columns(4)
         with col_h1:
             h_ders = st.selectbox("Ders Seç:", list(LGS_MUSERFAT.keys()), key="dh_ders")
         with col_h2:
@@ -312,60 +368,53 @@ with tabs[1]:
         st.divider()
         if st.button("📊 Deneme Sınavını ve Konu Hatalarını Kaydet", type="primary"):
             ogr_obj["deneme"].append({
-                "Tarih": deneme_tarihi, "Deneme": deneme_adi, 
+                "Tarih": str(deneme_tarihi), "Deneme": deneme_adi, 
                 "Netler": net_girisleri, "KonuHatalari": st.session_state["temp_deneme_hatalari"]
             })
             st.session_state["temp_deneme_hatalari"] = []
-            st.success("Deneme sınavı ve konu detayları başarıyla kaydedildi!")
+            save_db(db)
+            st.success("✅ Deneme sınavı kalıcı olarak Google Sheets'e kaydedildi!")
 
-# ----------------------------------------------------
-# TAB 3: MEB & ÇIKMIŞLAR
-# ----------------------------------------------------
-with tabs[2]:
-    st.header("📚 MEB Soruları ve Çıkmış Soru Kontrolü")
-    for ders_adi in ANA_LGS_DERSLERI:
-        with st.expander(f"📌 {ders_adi}"):
-            st.checkbox(f"{ders_adi} - MEB Örnek Sorularını Çözdüm")
-            st.checkbox(f"{ders_adi} - LGS Çıkmış Soruları Çözdüm")
-
-# ----------------------------------------------------
-# TAB 4: KİTAP OKUMA & HAFTALIK ÖZ DEĞERLENDİRME (KAYDET BUTONLU)
-# ----------------------------------------------------
-with tabs[3]:
+# ==============================================================================
+# 4. MEB ÖRNEK VE ÇIKMIŞ SORULAR (KONU KONU İŞARETLEME)
+# ==============================================================================
+elif secili_menu == "📚 MEB & Çıkmış Sorular (Konu Konu)":
     if active_stud_id:
-        ogr_obj = st.session_state["ogrenciler"][active_stud_id]
-        st.header(f"📖 Kitap Okuma Takibi ve Öz Değerlendirme ({ogr_obj['ad']})")
-        
-        col_k1, col_k2, col_k3 = st.columns(3)
-        with col_k1:
-            hafta_tarih = st.date_input("Hafta / Tarih Seçimi", datetime.date.today())
-        with col_k2:
-            kitap_adi = st.text_input("Okunan Kitap Adı", "Şeker Portakalı")
-        with col_k3:
-            okunan_sayfa = st.number_input("Haftalık Okunan Sayfa Sayısı", min_value=0, value=75)
+        ogr_obj = db["ogrenciler"][active_stud_id]
+        if "meb_cikmis_konu" not in ogr_obj:
+            ogr_obj["meb_cikmis_konu"] = {}
 
-        ogrenci_notu = st.text_area(
-            "Haftalık Öz Değerlendirme Notunuz (Bu hafta ne durumdaydınız?):",
-            "Bu hafta matematik yeni nesil sorularında gelişim sağladım, hedef okuma sayfamı tamamladım..."
-        )
+        st.header(f"📚 MEB Soruları ve Çıkmış Sorular (Konu Bazlı Takip)")
+        st.caption("Her konunun MEB örnek sorularını ve LGS çıkmış sorularını tamamladıkça durumunu güncelleyebilirsiniz.")
 
-        if st.button("💾 Kitap & Öz Değerlendirmeyi Kaydet", type="primary"):
-            ogr_obj["kitap_ozdegerlendirme"].append({
-                "Tarih": hafta_tarih, "Kitap": kitap_adi, "Sayfa": okunan_sayfa, "Not": ogrenci_notu
-            })
-            st.success("✅ Haftalık kitap okuma ve öz değerlendirmeniz başarıyla kaydedildi!")
+        for ders_kategori, konular in LGS_MUSERFAT.items():
+            with st.expander(f"📌 {ders_kategori}"):
+                for kn in konular:
+                    key_base = f"{ders_kategori}_{kn}"
+                    if key_base not in ogr_obj["meb_cikmis_konu"]:
+                        ogr_obj["meb_cikmis_konu"][key_base] = {"meb": False, "cikmis": False}
 
-        if len(ogr_obj["kitap_ozdegerlendirme"]) > 0:
-            st.divider()
-            st.subheader("📜 Geçmiş Değerlendirme Kayıtları")
-            st.dataframe(pd.DataFrame(ogr_obj["kitap_ozdegerlendirme"]), use_container_width=True)
+                    col_m1, col_m2, col_m3 = st.columns([2, 1, 1])
+                    with col_m1:
+                        st.markdown(f"**{kn}**")
+                    with col_m2:
+                        chk_meb = st.checkbox("MEB Soruları", value=ogr_obj["meb_cikmis_konu"][key_base]["meb"], key=f"meb_{key_base}")
+                        ogr_obj["meb_cikmis_konu"][key_base]["meb"] = chk_meb
+                    with col_m3:
+                        chk_cikmis = st.checkbox("Çıkmış Sorular", value=ogr_obj["meb_cikmis_konu"][key_base]["cikmis"], key=f"cikmis_{key_base}")
+                        ogr_obj["meb_cikmis_konu"][key_base]["cikmis"] = chk_cikmis
 
-# ----------------------------------------------------
-# TAB 5: VELİ VE KOÇ ANALİZ PANELİ
-# ----------------------------------------------------
-with tabs[4]:
+        st.divider()
+        if st.button("💾 Konu Durumlarını Kalıcı Kaydet", type="primary", use_container_width=True):
+            save_db(db)
+            st.success("✅ Tüm konu bazlı MEB ve çıkmış soru durumları Google Sheets'e kaydedildi!")
+
+# ==============================================================================
+# 5. VELİ VE KOÇ ANALİZ PANELİ
+# ==============================================================================
+elif secili_menu == "👨‍👩‍👧 Veli & Koç Analiz Paneli":
     if active_stud_id:
-        ogr_obj = st.session_state["ogrenciler"][active_stud_id]
+        ogr_obj = db["ogrenciler"][active_stud_id]
         st.header(f"👨‍👩‍👧 {ogr_obj['ad']} - İlerleme ve Süre Analiz Paneli")
         
         if len(ogr_obj["calisma"]) > 0:
@@ -377,71 +426,78 @@ with tabs[4]:
             
             fig_sure = px.pie(df_calisma, values="Süre (dk)", names="Ders", title="Derslere Göre Zaman Dağılımı")
             st.plotly_chart(fig_sure, use_container_width=True)
+
+            st.divider()
+            st.subheader("📖 Günlük Kitap Okuma ve Öz Değerlendirme Geçmişi")
+            st.dataframe(df_calisma[["Tarih", "Ders", "Süre (dk)", "Kitap", "Sayfa", "Not"]], use_container_width=True)
         else:
-            st.info("İncelemek için lütfen 'Günlük Veri & Süre Girişi' sekmesinden veri kaydedin.")
+            st.info("Kayıtlı çalışma verisi bulunmuyor.")
 
-# ----------------------------------------------------
-# TAB 6: YÖNETİM PANELİ (KOÇ VE ADMİN)
-# ----------------------------------------------------
-if role in ["Koç", "Ana Yönetici"]:
-    with tabs[5]:
-        st.header("⚙️ Koç & Sistem Yönetim Merkezi")
-        
-        st.subheader("👨‍🎓 Öğrenci Yönetimi (Ekle / Sil / Şifre Değiştir)")
-        col_oe1, col_oe2 = st.columns(2)
-        
-        with col_oe1:
-            st.markdown("### ➕ Yeni Öğrenci Ekle")
-            new_s_username = st.text_input("Kullanıcı Adı (Örn: ahmet):").strip().lower()
-            new_s_fullname = st.text_input("Adı Soyadı (Örn: Ahmet Demir):")
-            new_s_pass = st.text_input("Şifresi:", value="1234")
-            assigned_koc = st.selectbox("Atanacak Koç:", list(st.session_state["koclar"].keys()), format_func=lambda x: st.session_state["koclar"][x]["ad"]) if role == "Ana Yönetici" else curr_usr
+# ==============================================================================
+# 6. YÖNETİM PANELİ (KOÇ VE ADMİN)
+# ==============================================================================
+elif secili_menu == "⚙️ Yönetim Paneli" and role in ["Koç", "Ana Yönetici"]:
+    st.header("⚙️ Koç & Sistem Yönetim Merkezi")
+    
+    st.subheader("👨‍🎓 Öğrenci Yönetimi (Ekle / Sil)")
+    col_oe1, col_oe2 = st.columns(2)
+    
+    with col_oe1:
+        st.markdown("### ➕ Yeni Öğrenci Ekle")
+        new_s_username = st.text_input("Kullanıcı Adı (Örn: ahmet):").strip().lower()
+        new_s_fullname = st.text_input("Adı Soyadı (Örn: Ahmet Demir):")
+        new_s_pass = st.text_input("Şifresi:", value="1234")
+        assigned_koc = st.selectbox("Atanacak Koç:", list(db["koclar"].keys()), format_func=lambda x: db["koclar"][x]["ad"]) if role == "Ana Yönetici" else curr_usr
 
-            if st.button("➕ Öğrenciyi Kaydet", type="primary"):
-                if new_s_username and new_s_fullname:
-                    if new_s_username in st.session_state["ogrenciler"]:
-                        st.error("Bu kullanıcı adı zaten mevcut!")
-                    else:
-                        st.session_state["ogrenciler"][new_s_username] = {
-                            "ad": new_s_fullname, "sifre": new_s_pass, "koc_id": assigned_koc,
-                            "calisma": [], "deneme": [], "kitap_ozdegerlendirme": [],
-                            "hedef_netler": {d: 15.0 for d in ANA_LGS_DERSLERI},
-                            "ozlu_soz": "Başarı yolculuğun başladı!"
-                        }
-                        st.success(f"✅ {new_s_fullname} eklendi!")
-                        st.rerun()
-
-        with col_oe2:
-            st.markdown("### 🗑️ Öğrenci Sil")
-            silinecek_ogrenciler = list(filtre_ogrenciler.keys()) if role == "Koç" else list(st.session_state["ogrenciler"].keys())
-            if len(silinecek_ogrenciler) > 0:
-                del_s_id = st.selectbox("Silinecek Öğrenciyi Seçin:", silinecek_ogrenciler, format_func=lambda x: f"{st.session_state['ogrenciler'][x]['ad']} ({x})")
-                if st.button("❌ Seçili Öğrenciyi Sil", type="secondary"):
-                    del st.session_state["ogrenciler"][del_s_id]
-                    st.success("Öğrenci silindi!")
+        if st.button("➕ Öğrenciyi Kaydet", type="primary"):
+            if new_s_username and new_s_fullname:
+                if new_s_username in db["ogrenciler"]:
+                    st.error("Bu kullanıcı adı zaten mevcut!")
+                else:
+                    db["ogrenciler"][new_s_username] = {
+                        "ad": new_s_fullname, "sifre": new_s_pass, "koc_id": assigned_koc,
+                        "calisma": [], "deneme": [], "meb_cikmis_konu": {}, "haftalik_program": [],
+                        "hedef_netler": {d: 15.0 for d in ANA_LGS_DERSLERI},
+                        "ozlu_soz": "Başarı yolculuğun başladı!"
+                    }
+                    save_db(db)
+                    st.success(f"✅ {new_s_fullname} Google Sheets'e eklendi!")
                     st.rerun()
 
-        st.divider()
-        if role == "Ana Yönetici":
-            st.subheader("👑 Ana Yönetici Özel Paneli: Koç Yönetimi")
-            col_ke1, col_ke2 = st.columns(2)
+    with col_oe2:
+        st.markdown("### 🗑️ Öğrenci Sil")
+        silinecek_ogrenciler = list(filtre_ogrenciler.keys()) if role == "Koç" else list(db["ogrenciler"].keys())
+        if len(silinecek_ogrenciler) > 0:
+            del_s_id = st.selectbox("Silinecek Öğrenciyi Seçin:", silinecek_ogrenciler, format_func=lambda x: f"{db['ogrenciler'][x]['ad']} ({x})")
+            if st.button("❌ Seçili Öğrenciyi Sil", type="secondary"):
+                del db["ogrenciler"][del_s_id]
+                save_db(db)
+                st.success("Öğrenci silindi ve veritabanı güncellendi!")
+                st.rerun()
+
+    st.divider()
+    if role == "Ana Yönetici":
+        st.subheader("👑 Ana Yönetici Özel Paneli: Koç Yönetimi")
+        col_ke1, col_ke2 = st.columns(2)
+        
+        with col_ke1:
+            st.markdown("### ➕ Yeni Koç Ekle")
+            new_k_username = st.text_input("Koç Kullanıcı Adı (Örn: koc3):").strip().lower()
+            new_k_fullname = st.text_input("Koç Adı Soyadı (Örn: Ayşe Hoca):")
+            new_k_pass = st.text_input("Koç Şifresi:", value="koc123")
             
-            with col_ke1:
-                st.markdown("### ➕ Yeni Koç Ekle")
-                new_k_username = st.text_input("Koç Kullanıcı Adı (Örn: koc3):").strip().lower()
-                new_k_fullname = st.text_input("Koç Adı Soyadı (Örn: Ayşe Hoca):")
-                new_k_pass = st.text_input("Koç Şifresi:", value="koc123")
-                
-                if st.button("➕ Yeni Koç Oluştur", type="primary"):
-                    if new_k_username and new_k_fullname:
-                        st.session_state["koclar"][new_k_username] = {"ad": new_k_fullname, "sifre": new_k_pass, "lisans": True}
-                        st.success(f"✅ Koç {new_k_fullname} eklendi!")
-                        st.rerun()
-
-            with col_ke2:
-                st.markdown("### 🗑️ Koç Sil")
-                del_k_id = st.selectbox("İşlem Yapılacak Koç:", list(st.session_state["koclar"].keys()), format_func=lambda x: f"{st.session_state['koclar'][x]['ad']} ({x})")
-                if st.button("❌ Seçili Koçu Sil"):
-                    del st.session_state["koclar"][del_k_id]
-                    st.success("Koç silindi!")
+            if st.button("➕ Yeni Koç Oluştur", type="primary"):
+                if new_k_username and new_k_fullname:
+                    db["koclar"][new_k_username] = {"ad": new_k_fullname, "sifre": new_k_pass, "lisans": True}
+                    save_db(db)
+                    st.success(f"✅ Koç {new_k_fullname} eklendi!")
                     st.rerun()
+
+        with col_ke2:
+            st.markdown("### 🗑️ Koç Sil")
+            del_k_id = st.selectbox("İşlem Yapılacak Koç:", list(db["koclar"].keys()), format_func=lambda x: f"{db['koclar'][x]['ad']} ({x})")
+            if st.button("❌ Seçili Koçu Sil"):
+                del db["koclar"][del_k_id]
+                save_db(db)
+                st.success("Koç silindi!")
+                st.rerun()
