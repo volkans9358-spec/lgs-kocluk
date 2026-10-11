@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import datetime
-
+https://script.google.com/macros/s/AKfycbzJ1udjB5PymW1Msl7Zk51t7uwATJzVYds9F98iq7kalanTvtQUvOfmG87Y6HaER2BS/exec
 # 1. SAYFA YAPILANDIRMASI VE ŞIK STİL (CUSTOM CSS)
 st.set_page_config(page_title="ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ", layout="wide", page_icon="🦅")
 
