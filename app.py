@@ -32,18 +32,70 @@ def save_db(data):
             return False
     return False
 
-# 1. SAYFA YAPILANDIRMASI VE ŞIK STİL
+# 1. SAYFA YAPILANDIRMASI VE GELİŞMİŞ RENKLİ CSS STİLİ
 st.set_page_config(page_title="ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ", layout="wide", page_icon="🦅")
 
 st.markdown("""
 <style>
-    .main-title { font-size: 2.2rem; color: #1E3A8A; text-align: center; font-weight: 800; margin-bottom: 5px; }
-    .sub-title { font-size: 1.1rem; color: #4B5563; text-align: center; margin-bottom: 20px; }
-    .login-card { background-color: #F8FAFC; padding: 25px; border-radius: 15px; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    /* Genel Arka Plan ve Tipografi */
+    .stApp {
+        background-color: #F8FAFC;
+    }
+    .main-title {
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        margin-bottom: 2px;
+    }
+    .sub-title {
+        font-size: 1.15rem;
+        color: #475569;
+        text-align: center;
+        font-weight: 600;
+        margin-bottom: 25px;
+    }
+    .login-card {
+        background: #FFFFFF;
+        padding: 32px;
+        border-radius: 18px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    }
+    .sidebar-brand {
+        background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
+        color: #FFFFFF !important;
+        padding: 16px;
+        border-radius: 14px;
+        text-align: center;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+    }
+    .sidebar-brand h3 {
+        color: #FFFFFF !important;
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 800;
+    }
+    .sidebar-brand p {
+        color: #93C5FD !important;
+        margin: 0;
+        font-size: 0.85rem;
+    }
+    .metric-box {
+        background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+        border-left: 5px solid #2563EB;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. VERİTABANI YÜKLEME
+# 2. VERİTABANI YÜKLEME VE İLKLEME
 db_remote = load_db()
 
 if "db" not in st.session_state:
@@ -52,6 +104,7 @@ if "db" not in st.session_state:
     else:
         st.session_state["db"] = {
             "koclar": {
+                "admin": {"ad": "Ana Yönetici (Siz)", "sifre": "admin123", "lisans": True},
                 "koc1": {"ad": "Ahmet Hoca", "sifre": "koc123", "lisans": True},
                 "koc2": {"ad": "Mehmet Hoca", "sifre": "koc123", "lisans": False}
             },
@@ -66,6 +119,10 @@ if "db" not in st.session_state:
         }
 
 db = st.session_state["db"]
+
+# ADMIN HESABININ KOÇ LİSTESİNDE DAİMA BULUNMASINI SAĞLA
+if "admin" not in db["koclar"]:
+    db["koclar"]["admin"] = {"ad": "Ana Yönetici (Siz)", "sifre": "admin123", "lisans": True}
 
 # LGS MÜFREDATI
 LGS_MUSERFAT = {
@@ -114,7 +171,7 @@ if not st.session_state["logged_in"]:
                     st.error("Hatalı Kullanıcı Adı veya Şifre!")
                     
         elif rol_secim == "👨‍🏫 Koç Girişi":
-            usr = st.text_input("Koç Kullanıcı Adı (Örn: koc1):", key="in_koc_usr").strip().lower()
+            usr = st.text_input("Koç Kullanıcı Adı (Örn: koc1, admin):", key="in_koc_usr").strip().lower()
             pwd = st.text_input("Şifre:", type="password", key="in_koc_pwd")
             if st.button("🚀 Koç Olarak Giriş Yap", type="primary", use_container_width=True):
                 if usr in db["koclar"] and db["koclar"][usr]["sifre"] == pwd:
@@ -128,7 +185,7 @@ if not st.session_state["logged_in"]:
         elif rol_secim == "👑 Ana Yönetici Girişi":
             pwd = st.text_input("Yönetici Şifresi:", type="password", key="in_admin_pwd")
             if st.button("🚀 Yönetici Olarak Giriş Yap", type="primary", use_container_width=True):
-                if pwd == "admin123":
+                if pwd == db["koclar"]["admin"]["sifre"] or pwd == "admin123":
                     st.session_state["logged_in"] = True
                     st.session_state["user_role"] = "Ana Yönetici"
                     st.session_state["current_user"] = "admin"
@@ -159,8 +216,13 @@ elif role in ["Koç", "Ana Yönetici"]:
 # DİKEY YAN MENÜ (ALT ALTA NAVİGASYON)
 # ==============================================================================
 with st.sidebar:
-    st.markdown("### 🦅 ŞAHİN MATH CHECK-UP")
-    st.caption("Koçluk Akademisi")
+    st.markdown("""
+    <div class="sidebar-brand">
+        <h3>🦅 ŞAHİN MATH</h3>
+        <p>Check-Up Koçluk Akademisi</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.info(f"👤 **Oturum:** {role}")
     
     if role == "Ana Yönetici":
@@ -171,18 +233,19 @@ with st.sidebar:
                 format_func=lambda x: f"{db['ogrenciler'][x]['ad']} ({x})"
             )
     elif role == "Koç":
-        st.markdown(f"**Koç:** {db['koclar'][curr_usr]['ad']}")
+        k_name = db["koclar"].get(curr_usr, {}).get("ad", "Koç")
+        st.markdown(f"**Koç:** {k_name}")
         if len(filtre_ogrenciler) > 0:
             st.session_state["selected_student_id"] = st.selectbox(
                 "Öğrenciniz:", list(filtre_ogrenciler.keys()),
                 format_func=lambda x: f"{filtre_ogrenciler[x]['ad']} ({x})"
             )
     elif role == "Öğrenci":
-        st.markdown(f"**Öğrenci:** {db['ogrenciler'][active_stud_id]['ad']}")
+        s_name = db["ogrenciler"].get(active_stud_id, {}).get("ad", "Öğrenci")
+        st.markdown(f"**Öğrenci:** {s_name}")
 
     st.divider()
 
-    # DİKEY MENÜ SEÇİMİ (ALT ALTA SEÇENEKLER)
     menu_options = [
         "📝 Günlük Çalışma & Kitap Okuma",
         "📅 Haftalık Ders Çalışma Programı",
@@ -202,10 +265,10 @@ with st.sidebar:
             if yeni_pass:
                 if role == "Öğrenci":
                     db["ogrenciler"][curr_usr]["sifre"] = yeni_pass
-                elif role == "Koç":
+                elif role in ["Koç", "Ana Yönetici"]:
                     db["koclar"][curr_usr]["sifre"] = yeni_pass
                 save_db(db)
-                st.success("Şifreniz Google Sheets'e kaydedildi!")
+                st.success("Şifreniz kaydedildi!")
 
     if active_stud_id and active_stud_id in db["ogrenciler"]:
         st.divider()
@@ -274,7 +337,7 @@ if secili_menu == "📝 Günlük Çalışma & Kitap Okuma":
                 "Kitap": kitap_adi, "Sayfa": okunan_sayfa, "Not": gunluk_not
             })
             save_db(db)
-            st.success("✅ Günlük ders, süre, kitap okuma ve öz değerlendirme kaydınız kalıcı olarak Google Sheets'e eklendi!")
+            st.success("✅ Günlük ders, süre, kitap okuma ve öz değerlendirme kaydınız Google Sheets'e kaydedildi!")
 
 # ==============================================================================
 # 2. HAFTALIK DERS ÇALIŞMA PROGRAMI TABLOSU
@@ -495,9 +558,13 @@ elif secili_menu == "⚙️ Yönetim Paneli" and role in ["Koç", "Ana Yönetici
 
         with col_ke2:
             st.markdown("### 🗑️ Koç Sil")
-            del_k_id = st.selectbox("İşlem Yapılacak Koç:", list(db["koclar"].keys()), format_func=lambda x: f"{db['koclar'][x]['ad']} ({x})")
-            if st.button("❌ Seçili Koçu Sil"):
-                del db["koclar"][del_k_id]
-                save_db(db)
-                st.success("Koç silindi!")
-                st.rerun()
+            koc_sil_listesi = [k for k in db["koclar"].keys() if k != "admin"]
+            if len(koc_sil_listesi) > 0:
+                del_k_id = st.selectbox("İşlem Yapılacak Koç:", koc_sil_listesi, format_func=lambda x: f"{db['koclar'][x]['ad']} ({x})")
+                if st.button("❌ Seçili Koçu Sil"):
+                    del db["koclar"][del_k_id]
+                    save_db(db)
+                    st.success("Koç silindi!")
+                    st.rerun()
+            else:
+                st.info("Silinebilir ek koç bulunmuyor (Ana Yönetici hesabı silinemez).")
