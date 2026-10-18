@@ -164,7 +164,7 @@ if not st.session_state["logged_in"]:
     st.markdown('<div class="main-title">🦅 ŞAHİN MATH CHECK-UP KOÇLUK AKADEMİSİ</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">LGS Başarı & Performans Takip Sistemi</div>', unsafe_allow_html=True)
     
-    col_c1, col_box, col_c2 = st.columns()
+    col_c1, col_box, col_c2 = st.columns([1, 2, 1])
     with col_box:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         rol_secim = st.radio("🔑 Giriş Türünü Seçiniz:", ["👨‍🎓 Öğrenci Girişi", "👨‍🏫 Koç Girişi", "👑 Ana Yönetici Girişi"], horizontal=True)
@@ -220,7 +220,6 @@ elif role in ["Koç", "Ana Yönetici"]:
     filtre_ogrenciler = {k: v for k, v in db["ogrenciler"].items() if v.get("koc_id") == curr_usr} if role == "Koç" else db["ogrenciler"]
     if len(filtre_ogrenciler) > 0:
         if st.session_state["selected_student_id"] not in filtre_ogrenciler:
-            # DÜZELTME: Liste değil, listenin ilk string elemanı seçildi
             st.session_state["selected_student_id"] = list(filtre_ogrenciler.keys())[0]
         active_stud_id = st.session_state["selected_student_id"]
     else:
@@ -541,7 +540,7 @@ elif secili_menu == "📚 MEB & Çıkmış Sorular (Konu Konu)":
                     if key_base not in ogr_obj["meb_cikmis_konu"]:
                         ogr_obj["meb_cikmis_konu"][key_base] = {"meb": False, "cikmis": False}
 
-                    col_m1, col_m2, col_m3 = st.columns()
+                    col_m1, col_m2, col_m3 = st.columns(3)
                     with col_m1:
                         st.markdown(f"**{kn}**")
                     with col_m2:
